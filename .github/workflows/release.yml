@@ -1,0 +1,55 @@
+name: Release
+
+# Tag-gated release: publish ONLY after the launch smoke passes. Before this
+# workflow existed, build.yml published on tags in parallel with smoke.yml —
+# the "release only after smoke passes" rule had no enforcement.
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  smoke:
+    uses: ./.github/workflows/smoke.yml
+    permissions:
+      contents: read
+
+  publish:
+    name: Publish installers
+    needs: smoke
+    runs-on: ${{ matrix.os }}
+
+    permissions:
+      contents: write
+
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: 3.x
+
+      - name: Install Dependencies
+        run: npm ci
+        shell: bash
+
+      # GH_TOKEN present only here: electron-builder publishes the release
+      # for this tag. Smoke has already passed (needs: smoke).
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run dist
+        shell: bash

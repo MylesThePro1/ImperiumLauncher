@@ -1,17 +1,27 @@
 name: Build
 
-on: push
+# Artifacts-only build on branch pushes: no write permission, no publish token.
+# Releases are handled by release.yml (tag-gated, requires smoke to pass) — see
+# docs/reviews/2026-10-23-code-review.md pass-2 P2 and the fix-branch review.
+on:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - 'v*'
 
 jobs:
-  release:
+  build:
     runs-on: ${{ matrix.os }}
 
     permissions:
-      contents: write
+      contents: read
 
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
+
+    timeout-minutes: 45
 
     steps:
       - name: Check out Git repository
@@ -31,8 +41,19 @@ jobs:
         run: npm ci
         shell: bash
 
+      # GH_TOKEN intentionally absent: without it electron-builder skips the
+      # GitHub publish step and writes artifacts to dist/ only.
       - name: Build
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run dist
         shell: bash
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.os }}
+          if-no-files-found: warn
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.AppImage
+            dist/latest*.yml
