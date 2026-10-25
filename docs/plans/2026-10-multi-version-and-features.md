@@ -639,6 +639,19 @@ convert (6g).
    - A mixin with no static members converts to Kotlin fully.
    - Proof per mixin: export the merged classes (`-Dmixin.debug.export=true`),
      compare with `javap` before and after, then the gametest that covers it.
+**Inventory (measured 2026-10-25, client branch):** 9,139 Java lines in 51 files.
+34 gametest classes (~7,000 lines; largest `PerformanceBenchmarkGameTest` 714,
+`ClientAuthGameTest` 438, `ImperiumMenuGameTest` 431) plus `AxolotlClientTest`
+and `ImperiumGametestSubsets`; 17 mixins (~1,900 lines; `ChatHudMixin` 583 is the
+only large one, most are 36-98). Gametests are registered by class name in
+`src/test/resources/fabric.mod.json`, so Kotlin classes with the same names keep
+working. Order: small gametests first, one batch per CI build (the build job
+compiles test sources even though the gametest job can't boot yet), then the
+large ones, then mixins smallest-first with `ChatHudMixin` last. Pitfall to check
+per file: Kotlin code must use Kotlin property names where Java called getters
+(`getInstance()` vs `instance`). Conversion is behaviour-preserving only;
+optimisations (6g) are separate commits with their own profiles.
+
 4. **Guard**: a check that fails CI if a new `.java` file appears outside the
    mixin-shell allow-list, or if a shell grows beyond declarations plus one-line
    calls, so the codebase stays Kotlin.
@@ -1065,3 +1078,106 @@ checkout, imports), so partial work can merge without reaching players.
 - **G16, not official.** Confirmed: nothing implies official Mojang/Microsoft
   status; the "not an official Minecraft product" line goes on the website,
   Modrinth page and installer.
+
+## 12. Feature research: what the big clients and launchers have
+
+Owner request (2026-10-25): look across Alpine, Badlion, Feather/Dawn, Lunar,
+LabyMod, Cosmic, NoRisk, Salwyrr, Tecknix, Melon, PvPLounge, Ares, Batmod,
+Meteor/Wurst/LiquidBounce/Aristois (legal features only), Sodium, AxolotlClient,
+Fabulously Optimized, Simply Optimized, SkyClient, Prism, GDLauncher, ATLauncher,
+SKLauncher and the vanilla launcher, and find what RomanicaClient should add.
+Sources: public feature pages and listings (2026-10-25); several smaller clients'
+claims come from download-site descriptions and are unverified. "Melon" and
+"Aires" returned nothing definite (closest match: Ares Client).
+
+### Already in RomanicaClient (no work needed)
+
+Keystrokes, CPS, reach, combo, armour, arrows, potions, coordinates, compass,
+ping, TPS, FPS, memory, speed, playtime, stopwatch, real time, XP, inventory HUD,
+pack display, player count, server IP, tab-list and scoreboard/boss-bar/title
+HUDs, custom crosshair, HUD editor with history, toggle sprint, zoom, freelook,
+snap-look, motion blur, hitboxes, chunk borders, light-level overlay, clear water,
+low-HP tint, minimap + full-screen map, waypoints, emotes + emote wheel, skin
+manager, official capes, screenshot tools and sharing, inventory search and
+tweaks, scrollable tooltips, chat peek and chat extras, now-playing (media) HUD,
+WorldEdit CUI, Discord Rich Presence, Hypixel and MCC Island modules, e4mc world
+sharing, profiles, server-gated features, performance hides.
+
+### Already planned elsewhere in this doc
+
+Replay clips, 1.7 animations, auto-GG/minigame QoL, host-a-world (NoRisk, Dawn and
+Feather all have it), Bedrock servers + Bedrock launch (Dawn launches Java and
+Bedrock), multi-version instances, import from other launchers, presets
+(Fabulously/Simply Optimized-style), performance stack, Console, hacked-client
+compatibility, in-game store, Xbox friends, controller support, content browser.
+
+### New candidates
+
+Priority: **H** high value, broad appeal; **M** worth it; **L** nice-to-have.
+
+**Client: PvP and HUD** (Lunar, Badlion, Dawn, Cosmic, Tecknix, Salwyrr, Batmod)
+
+| Feature | Seen in | Pri | Note |
+|---|---|---|---|
+| Block outline/overlay customiser (colour, width, fill) | most PvP clients | H | Small, very visible |
+| Hit colour / damage tint customiser | Lunar, Badlion | M | Cosmetic only, no gameplay effect |
+| Nametag options (own nametag in F5, background, text shadow) | Lunar, LabyMod | M | |
+| Item physics (dropped items lie flat) | LabyMod, Badlion | L | Visual only |
+| Totem/item counter, armour durability warning | PvP packs, Dawn packs | H | Fits OP-prison PvP |
+| Hunger saturation + food preview | AppleSkin-style, many packs | H | |
+| Chat macros / text hotkeys | Wurst-style macros, Lunar | M | Rate-limited, no spam (6d hard lines) |
+| Chat timestamps, copy message, mention highlight, compact duplicates | LabyMod, Lunar | M | Check chat extras first; some may exist |
+| Client-side time/weather changer | LabyMod, Badlion | L | Visual only; off on servers that gate it |
+| Particle multiplier / per-type particle toggles | Badlion, Lunar | M | Pairs with performance item P5 |
+| Death waypoint + share waypoint in chat | many clients | M | Builds on existing waypoints |
+| Hypixel/Bedwars overlays (level, stats) | Lunar, Badlion | L | Only if players ask; Hypixel module exists |
+
+**Client: social and platform** (LabyMod, NoRisk, Alpine, Lunar, Badlion)
+
+| Feature | Seen in | Pri | Note |
+|---|---|---|---|
+| **Voice chat** | LabyMod, NoRisk | H | Support the open-source Simple Voice Chat mod (client) + its server plugin on Romanica; no Romanica hosting (voice runs through the game server) |
+| **Server API plugin for other servers** (block modules, detect the client) | Alpine (Spigot plugin), Lunar (Apollo), Badlion | H | Publish a free "Romanica Client server API" plugin so any server can turn modules off. Fixes G3 reputation; the client only talks to servers that use it, so it still looks like plain Fabric elsewhere |
+| **Addon/plugin API for third-party developers** | Alpine plugin-api, LabyMod addons | M | Lets others add HUD modules; grows the ecosystem for free. Needs a stable API and docs |
+| Minigames inside the client | NoRisk | L | Out of scope |
+
+**Launcher** (Prism, GDLauncher, ATLauncher, SKLauncher, vanilla, NoRisk, Dawn)
+
+| Feature | Seen in | Pri | Note |
+|---|---|---|---|
+| Modpack install and **export** (`.mrpack`, CurseForge zip) | Prism, GDLauncher, ATLauncher | H | Import is planned; export lets players share setups |
+| Per-instance log viewer with error highlighting + crash analysis | Prism | H | Pairs with C14 crash reports |
+| **Quick Play**: join a server or world straight from the launcher | vanilla launcher, Prism | H | Minecraft's own quick-play launch arguments; "Play Romanica" button |
+| Server list with live ping/player count in the launcher | NoRisk, several | M | Romanica first, player's own list after |
+| Playtime per instance, screenshots gallery per instance | Prism, GDLauncher | M | |
+| World backups per instance | Prism (via mods), ATLauncher | M | Fits 0a "never lose stuff" |
+| Mod update checker with changelogs | Prism, GDLauncher | M | For player-added mods (C11) |
+| Desktop shortcut per instance | Prism, GDLauncher | L | |
+| Pre-launch / post-exit commands, JVM wrapper | Prism | L | Advanced settings |
+| Offline/cracked accounts | SKLauncher | **No** | Piracy; not supported |
+
+**Pack additions** (Fabulously Optimized, Simply Optimized, SkyClient)
+
+| Mod | Pri | Note |
+|---|---|---|
+| Dynamic lights (held torches light the area) | M | Popular; check performance on weak PCs (6c) |
+| Bug-fix collection (Debugify-style) | M | Fixes vanilla bugs; low risk |
+| AppleSkin-style hunger info | H | Or build it in (above) |
+| Animation tweaks (Not Enough Animations-style) | L | |
+| SkyBlock preset (SkyClient's niche, now 1.21.x) | M | Already in section 4 presets |
+
+**Legal features from hacked clients** (Meteor, Wurst, LiquidBounce, Aristois):
+the useful, non-cheat parts are auto-reconnect, better chat, macros, waypoints,
+notifications, auto-respawn and HUD tools. Most exist or are planned above
+(Console covers auto-reconnect/respawn). Freecam and anything that reveals hidden
+information or automates play stays out of RomanicaClient (6e); players who want
+those bring their own hacked client.
+
+### Suggested order
+
+1. H items that are small and visible: block outline, totem/armour counters,
+   hunger info, Quick Play "Play Romanica" button.
+2. Server API plugin for other servers (also fixes G3).
+3. Voice chat support.
+4. Launcher: log viewer + crash analysis, modpack export.
+5. M items as the phases they belong to come up; L items only on player demand.
