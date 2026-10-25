@@ -1221,6 +1221,7 @@ const settingsMinRAMRange     = document.getElementById('settingsMinRAMRange')
 const settingsMaxRAMLabel     = document.getElementById('settingsMaxRAMLabel')
 const settingsMinRAMLabel     = document.getElementById('settingsMinRAMLabel')
 const settingsMemoryTotal     = document.getElementById('settingsMemoryTotal')
+const settingsRAMWarning      = document.getElementById('settingsRAMWarning')
 const settingsMemoryAvail     = document.getElementById('settingsMemoryAvail')
 const settingsJavaExecDetails = document.getElementById('settingsJavaExecDetails')
 const settingsJavaReqDesc     = document.getElementById('settingsJavaReqDesc')
@@ -1287,6 +1288,25 @@ settingsMaxRAMRange.onchange = (e) => {
         settingsMinRAMLabel.textContent = sMaxV.toFixed(1) + 'G'
     }
     settingsMaxRAMLabel.textContent = sMaxV.toFixed(1) + 'G'
+    updateRAMWarning(sMaxV)
+}
+
+// The selected server's recommended RAM in GB (from the distribution index), or null.
+let settingsRecommendedRAM = null
+
+/**
+ * Warn when the maximum RAM is below what the server recommends. Too little
+ * memory shows up as a crash shortly after joining (field report 2026-10-25).
+ *
+ * @param {number} maxGB The selected maximum RAM in GB.
+ */
+function updateRAMWarning(maxGB){
+    if(settingsRecommendedRAM != null && maxGB < settingsRecommendedRAM){
+        settingsRAMWarning.textContent = Lang.queryJS('settings.java.ramBelowRecommended', { recommended: settingsRecommendedRAM.toFixed(1) })
+        settingsRAMWarning.style.display = 'block'
+    } else {
+        settingsRAMWarning.style.display = 'none'
+    }
 }
 
 /**
@@ -1460,6 +1480,9 @@ function bindMinMaxRam(server) {
     settingsMaxRAMRange.setAttribute('min', SETTINGS_MIN_MEMORY)
     settingsMinRAMRange.setAttribute('max', SETTINGS_MAX_MEMORY)
     settingsMinRAMRange.setAttribute('min', SETTINGS_MIN_MEMORY)
+
+    const recommendedMB = server.rawServer.javaOptions?.ram?.recommended
+    settingsRecommendedRAM = typeof recommendedMB === 'number' ? recommendedMB / 1024 : null
 }
 
 /**
@@ -1469,6 +1492,7 @@ async function prepareJavaTab(){
     const server = (await DistroAPI.getDistribution()).getServerById(ConfigManager.getSelectedServer())
     bindMinMaxRam(server)
     bindRangeSlider(server)
+    updateRAMWarning(Number(settingsMaxRAMRange.getAttribute('value')))
     populateMemoryStatus()
     populateJavaReqDesc(server)
     populateJvmOptsLink(server)
