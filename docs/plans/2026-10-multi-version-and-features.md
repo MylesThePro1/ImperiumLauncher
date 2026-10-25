@@ -33,7 +33,8 @@ Ground rules carried into every phase:
    keybinds, resource/shader packs, server lists and their own mods survive every
    launcher and client update.
 3. **Depend on nobody but Microsoft.** Identity, friends and sign-in come from
-   Microsoft; everything else runs on Romanica's own backend (api.romanica.net).
+   Microsoft (Xbox friends, presence and, if available, messaging). The only
+   Romanica-hosted client service is the store catalogue API (section 11).
    No AxolotlClient services, no other client's infrastructure.
 
 ### 0a. Keeping players' stuff
@@ -691,7 +692,7 @@ convert (6g).
    every new player sees a SmartScreen "unknown publisher" warning (an adoption
    killer) and updates rely on HTTPS plus the update file's hash alone.
    Already an open owner item; needs a certificate (costs money: owner decision).
-9. **Privacy policy and minors.** Friends, chat, cape uploads and the store all
+9. **Privacy policy and minors.** Friends, chat and the store all
    handle player data, and many players are children. Before those ship: privacy
    page covering the client and launcher, block/report/mute in chat and friends,
    moderation for uploads, and a check of children's-privacy rules (e.g. COPPA in
@@ -774,12 +775,12 @@ from other clients and launchers) is section 10.
 
 **B9. Privacy and minors.**
 - Privacy page on romanica.net covering client, launcher, Console (local only),
-  friends/chat, cape uploads, store, and the metrics in E19.
+  friends/chat (Microsoft-provided), store, and the metrics in E19.
 - Friends/chat: block, mute, report; staff moderation queue; chat filter on by
   default for younger players.
 - Uploads (capes): moderation queue (6b).
 - Children's-privacy check (COPPA in the US, GDPR-K in the EU, UK Children's Code)
-  before anything stores player data on api.romanica.net: what's collected, age
+  before anything stores player data on Romanica's services: what's collected, age
   handling, deletion on request. Get proper legal advice for this; it's not a
   code question.
 
@@ -894,7 +895,7 @@ owner's PC before that importer is advertised.
 ## 11. Further gaps (review 2026-10-25, round 2)
 
 **G1. Hosting cost vs "zero cost".** Console and the launcher are free to run,
-but friends/chat, capes, store catalogue and metrics all live on api.romanica.net
+but (before the section 11 decisions) friends/chat, capes, store catalogue and metrics were planned for api.romanica.net
 (Cloudflare Workers). The site already went dark once when the free Workers
 quota ran out (robots.ts note, 2026-10-11). Before each backend feature ships:
 estimate requests per active player, compare with the plan limits, and decide
@@ -944,7 +945,7 @@ isn't scheduled: store catalogue over the plugin channel (6f), handover notice
 (6d), hacked-client report (6e), metrics (E19), batching block-break effects
 (6g). Collect them into a plugin-side section so they ship with the client side.
 
-**G10. Backups for new backend data.** Friends lists, cape uploads and moderation
+**G10. Backups for new backend data.** (After section 11: only the store catalogue remains.) Friends lists, cape uploads and moderation
 records become player data we must not lose: daily backups and a tested restore
 before those features launch.
 
@@ -953,17 +954,24 @@ before those features launch.
 These supersede earlier text where they conflict; the affected sections are
 updated in place.
 
-- **Social and chat → Microsoft.** Friends and presence come from Xbox services
-  (0c, spike first). No Romanica social backend and no in-client chat service,
-  since Xbox messaging/parties aren't, as far as we know, open to third-party apps.
-  Removes most of G1's backend load and much of B9's data handling.
+- **Social and chat → Microsoft.** Friends, presence and chat use Xbox services;
+  no Romanica social backend. Friends and presence are expected to work with the
+  approved Azure app. **Xbox messaging may not be open to third-party apps**: the
+  spike (one real sign-in on the owner's PC) checks friends, presence *and*
+  messaging. If messaging isn't available, in-client chat is in-game chat on a
+  shared server only; Romanica still hosts nothing for it. Removes most of G1's
+  backend load and much of B9's data handling.
+- **Clean client, no cheat features.** RomanicaClient ships no cheat
+  functionality of its own (6e). Players who misbehave on a server are that
+  server's to ban; the client framework itself presents as plain Fabric.
 - **Capes dropped; Workers only for the store catalogue.** No custom capes (6b).
   The one Romanica-hosted client service is the store catalogue API on Cloudflare
   Workers (6f). G1 now applies to that API alone; G10 backups apply only to what it
   stores.
 - **Console: no account limit per server; join-rate limiting and queueing**
   instead (6d). Replaces G2's per-server cap; the minimum join gap and the hard
-  lines stay.
+  lines stay. **Messaging features stay intact**: per-account chat console,
+  sending chat and commands, alerts on mentions (6d v1).
 - **Client identity: standard Fabric.** RomanicaClient reports `fabric` as its
   `minecraft:brand`, the same as any Fabric install (drop the brand override in
   `ClientBrandRetrieverMixin`). Replaces G3's "honest brand string". To be fully
