@@ -7,9 +7,12 @@ comes after the launcher is stable (Fabric manifest fix + a release that passes
 
 Ground rules carried into every phase:
 
-- **No hacked clients**, in presets or as installable options (Wurst, Meteor,
-  LiquidBounce, Baritone, x-ray). Romanica runs its own anticheat; shipping these
-  would be shipping bypass tools for our own server.
+- **Hacked clients are the player's choice, never Romanica's product**
+  (owner decision 2026-10-25, see 6e). Players may install Meteor, Wurst and the
+  like themselves (anarchy servers such as 2b2t allow them). RomanicaClient stays
+  compatible and can theme them, but Romanica never bundles them in presets,
+  never builds cheat modules, and never builds anticheat bypasses for any server.
+  On Romanica they don't work.
 - **No redistributing other clients or closed mods.** OptiFine's licence forbids
   re-hosting: the launcher can only open optifine.net for the player to download
   it, then detect the jar. Lunar/Badlion ship their own launchers; offering them
@@ -323,7 +326,7 @@ place. Learn what those tools do; copy no code or assets from them.
   joining is the players' doing, but don't advertise counts that are mostly bots.
 - **Other servers** ban bots in their rules more often than not. The tool shows
   a clear "check this server's rules" notice and stays opt-in per server.
-- **Hard lines**, same as the no-hacked-clients rule: no anticheat evasion, no
+- **Hard lines** (same principle as 6e): no anticheat evasion, no
   auto-mining/auto-clicking for economy gain, no spam, no PvP/griefing
   automation, no account sharing or selling. Romanica runs its own anticheat;
   shipping evasion would be shipping bypass tools against ourselves.
@@ -453,6 +456,62 @@ Headless clients can be tested in CI against a throwaway local Paper server
 (Java) and a local Bedrock Dedicated Server: join, chat round-trip, reconnect
 after a server restart, clean disconnect. Microsoft sign-in and real servers:
 "Not verified" until run on the owner's PC.
+
+## 6e. Hacked clients: compatible everywhere, disabled on Romanica
+
+Owner direction (2026-10-25): players can use hacked clients (Meteor, Wurst and
+others) where that's allowed, such as anarchy servers; RomanicaClient should
+work alongside them, help where it can and re-theme their GUIs. The one
+requirement: **nobody can cheat on Romanica.**
+
+### What actually stops cheating on Romanica
+
+**The server, not the client.** A cheater can join with a hacked client and no
+RomanicaClient at all, and RomanicaClient is open source, so any client-side
+check can be removed. Every rule that matters is enforced by the plugin's
+server-side anticheat (`admin/`, AlertQueue pipeline), which already exists.
+Client-side measures below are a convenience for honest players, not security.
+
+### RomanicaClient on Romanica ("Romanica mode")
+
+The client's existing enforcement layer (`imperium/enforcement/`) already turns
+on only when connected to a Romanica address. Extend it:
+
+- On joining Romanica, switch off every module of a known hacked client the
+  player has installed (both offer ways to toggle modules programmatically), and
+  switch them back to the player's own state on leaving. Players don't get banned
+  by accident because they forgot a module was on.
+- Tell the player once, in plain words: "Meteor's modules are off on Romanica."
+- Report installed hacked clients to the server over the existing plugin channel
+  so staff and the anticheat have context. Informational only: a modified client
+  can lie, so it never replaces the server's checks.
+
+### Compatibility and help elsewhere
+
+- **No conflicts**: keybinds, HUD overlap, mixin conflicts and menu clashes are
+  bugs to fix. Test the client with each popular hacked client installed.
+- **Theming**: register a Romanica theme in their GUI systems where they offer a
+  theme API, so their menus match ours. Optional, off by default.
+- **Shared tools**: account manager, waypoints, HUD layout, profiles per server
+  (e.g. a "2b2t" profile and a "Romanica" profile switched automatically by
+  server address).
+- **Not built**: no new cheat modules, no "improved" bypasses, no anticheat
+  evasion for any server, Romanica or not. Players bring their own hacked client;
+  Romanica just stays out of the way.
+
+### Licences
+
+Meteor and Wurst are GPL-3.0; RomanicaClient is LGPL-3.0. Keep integration code
+in small separate compatibility add-ons (GPL-3.0, own jar, loaded only when the
+hacked client is present) rather than linking their code into the client.
+Ship those add-ons as optional downloads, never bundled with the hacked client.
+
+### Evidence
+
+CI gametest with Meteor installed (once the gametest job boots): join a local
+server whose address is on the Romanica allowlist, assert modules are off;
+leave, assert they're restored. Server-side: the plugin's anticheat tests stay
+the real proof.
 
 ## 7. Suggested order
 
