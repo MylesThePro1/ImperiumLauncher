@@ -185,15 +185,26 @@ Gaps worth planning, highest value first:
 
 ## 6a. Joining Bedrock servers from RomanicaClient (ViaBedrock)
 
-- ViaFabricPlus is in the pack since PR #24; it carries ViaBedrock, which lets a
-  Java client join Bedrock servers (the opposite direction from Geyser, which
-  already lets Bedrock players join Romanica).
-- **Owner-tested 2026-10-25: joining CubeCraft's Bedrock server worked.** One
-  server, one session; other servers, Realms and friends' worlds not yet tried.
-- Ship it labelled experimental until it has held up on a few more servers.
-- GPL-3.0: keep ViaFabricPlus/ViaBedrock as separate jars in the pack, never
-  copied into RomanicaClient (LGPL). Fix bugs upstream; pin and vendor the jar
-  rather than forking.
+Three projects, all GPL-3.0:
+
+| Project | Role |
+|---|---|
+| [ViaFabricPlus](https://github.com/ViaVersion/ViaFabricPlus) | Join servers from 1.0 to 26.3 on a 26.3 client. In the pack since PR #24. **No Bedrock on its own.** |
+| [viafabricplus-bedrock](https://github.com/ViaVersionAddons/viafabricplus-bedrock) | Add-on that adds Bedrock servers and Realms to ViaFabricPlus. Active (pushed 2026-10-18), on Modrinth. **Not in the pack yet.** |
+| [ViaBedrock](https://github.com/ViaVersionAddons/ViaBedrock) | The translation engine under the add-on. Its README: "very early stages of development and NOT intended for regular use yet." |
+
+- **Owner-tested 2026-10-25: latest ViaFabricPlus + the viafabricplus-bedrock
+  add-on joined CubeCraft's Bedrock server.** One server, one session; other
+  servers, Realms and friends' worlds not yet tried.
+- To ship: add the add-on to the pack from Modrinth (pinned version, sha256),
+  version-matched to the ViaFabricPlus jar already there. Label Bedrock joining
+  experimental until it has held up on a few more servers.
+- GPL-3.0: keep all three as separate jars in the pack, never copied into
+  RomanicaClient (LGPL). Fix bugs upstream; pin and vendor jars rather than
+  maintaining forks.
+- Source mirrors: fork the three repos into Romanica-MC (owner does this on
+  GitHub) so the code stays available if upstream changes or disappears. A
+  mirror is a safety copy, not a maintained fork.
 - A "launch Bedrock" button (Windows `minecraft://` link) stays a later, small
   convenience; it adds no new capability.
 
