@@ -745,8 +745,167 @@ convert (6g).
     crash rate per release. The client exists to grow the server; without these
     numbers there's no way to tell whether it does.
 
-### Suggested order for this section
+Each item is planned in section 9; "Switch to Romanica" (moving everything in
+from other clients and launchers) is section 10.
 
-A1, then A2-A6, then B7 (small and urgent), then B8/B9 before friends/chat/store
-ship, then C and D alongside the phases they belong to; E as soon as the client
-is released widely.
+## 9. Plans for the gaps (section 8)
+
+### A. Unfinished now
+
+**A1. Prove the game runs in CI.**
+- Launcher smoke: the game starts but no `latest.log` appears in 20 min. Steps:
+  capture the game process's own stdout/stderr and exit code into the job log;
+  check whether the game writes its log somewhere other than
+  `instances/Romanica/logs` (e.g. a different game dir argument); if it crashes
+  before logging, the JVM output shows why. Smoke must fail when there's no game
+  log (fix the driver's fallback "PASS").
+- Client gametest: "Couldn't find matching GLX visual" under xvfb, and forcing
+  EGL didn't help. Steps: list the visuals Xvfb offers (`glxinfo`, `xdpyinfo`),
+  compare with what the 26.3 renderer requests (depth/stencil/alpha), try Xvfb
+  `-screen 0 1280x1024x24+32` and Mesa's `LIBGL_ALWAYS_SOFTWARE` with explicit
+  visual overrides, or a Windows runner with Mesa as the launcher smoke uses.
+- Done when: a run shows `latest.log` reaching the title screen, and a gametest
+  run reports a non-zero count with `joined the game`.
+
+**A2-A6** are owner actions or merges, tracked in section 8: real launch for
+0.2.8, merge + release the Azure swap, PayNow webhook events, production
+`afk.yml`, brand rename (6h).
+
+### B. Security and privacy
+
+**B7. Encrypt stored sign-in tokens (client).**
+- Store `accounts.json` tokens through the OS: Windows DPAPI, macOS Keychain,
+  Linux Secret Service (libsecret); a Java library that wraps all three, or small
+  per-OS code. If no keychain is available, fall back to asking the player to sign
+  in each session rather than writing plain text.
+- Migration on first start: read the old file, re-save encrypted, securely delete
+  `accounts.json` and `accounts.json.old`. Account list survives (0a).
+- Tests: round-trip on each OS in CI (Windows/macOS/Linux runners), plus a test
+  that no token string appears in any file under the config dir after migration.
+- Same rule for the launcher's own account store (check `configmanager.js`) and
+  the Console (6d).
+
+**B8. Windows code signing (owner decision: certificate cost).**
+- Options: a standard OV code-signing certificate (yearly cost, needs a hardware
+  key or cloud signing), or a cloud signing service. Signing removes the
+  "unknown publisher" warning over time and lets auto-update verify the publisher.
+- Wire into `release.yml` only (secrets never in the repo); smoke still gates.
+
+**B9. Privacy and minors.**
+- Privacy page on romanica.net covering client, launcher, Console (local only),
+  friends/chat, cape uploads, store, and the metrics in E19.
+- Friends/chat: block, mute, report; staff moderation queue; chat filter on by
+  default for younger players.
+- Uploads (capes): moderation queue (6b).
+- Children's-privacy check (COPPA in the US, GDPR-K in the EU, UK Children's Code)
+  before anything stores player data on api.romanica.net: what's collected, age
+  handling, deletion on request. Get proper legal advice for this; it's not a
+  code question.
+
+### C. Launcher
+
+**C10. Release channels and rollback.** Stable and beta channels (electron-
+updater supports channels); beta opt-in in settings. Keep the previous version's
+installer; "roll back to previous version" in settings. A bad stable release is
+pulled by re-pointing `latest.yml`.
+
+**C11. Content browser.** Search Modrinth (mods, resource packs, shaders,
+data packs) filtered by the instance's version and loader; install with
+dependencies; update and remove. Player-added content is player-owned (0a) and
+never touched by the managed-mod cleanup.
+
+**C12. Offline launch.** If the index or the network is unreachable, launch from
+the last fully verified file set (the verifier cache already records it) for
+singleplayer and LAN; clear message that online play needs a connection.
+
+**C13. macOS and Linux.** Add both to the smoke matrix (macOS and Linux runners
+with software GL), fix what breaks, then publish their installers.
+
+**C14. One-click crash reports.** On a game or launcher crash: show what
+happened, offer "Copy report" / "Open report folder", redacted with the existing
+`redact.js` rules. Optional upload only if the player chooses (to a GitHub issue
+template or Discord, no new hosting).
+
+### D. Client
+
+**D15. Controller support.** Evaluate shipping an existing controller mod in the
+pack (Controlify is the main one; check licence and 26.3 build) versus building
+our own; Romanica menus must be fully navigable with a controller either way.
+
+**D16. Settings export/import.** One file containing client settings, HUD
+layout, keybinds, profiles and waypoints; export/import from the menu. Local
+only.
+
+**D17. Translations.** Every new screen ships with de/es/pt strings; the existing
+locale-completeness test enforces it. English-only strings fail CI.
+
+**D18. First-run onboarding.** Three short screens on first start: Romanica mode,
+what's included (Console, Bedrock servers, store), and "Switch to Romanica"
+(section 10). Skippable, never shown again.
+
+### E. Measuring
+
+**E19. Success metrics.**
+- From the server (no client tracking): count players whose client announces the
+  Romanica channel; first-join date; 7-day and 30-day return.
+- Crash rate per release from opt-in crash reports (C14).
+- Downloads from GitHub release stats and the website.
+- Shown on the admin dashboard; reviewed after each release.
+
+## 10. "Switch to Romanica": bring everything in from other clients and launchers
+
+Owner direction (2026-10-25): make it easy to move all of a player's stuff into
+RomanicaClient from other launchers and clients. Extends 0b (version import).
+
+### Sources
+
+| Source | Where it keeps data | What we can import |
+|---|---|---|
+| Vanilla launcher | `.minecraft` | Versions, worlds, screenshots, resource/shader packs, `options.txt`, `servers.dat` |
+| MultiMC / Prism-style launchers | instance folders + instance config | All of the above per instance, plus mods and loader/version |
+| CurseForge app | its instances folder + manifest | Same; modpack manifest maps to Modrinth/CF ids |
+| Modrinth App | its profiles folder | Same; mods already identified by Modrinth ids |
+| ATLauncher, GDLauncher and similar | instance folders | Same, best effort per launcher |
+| Lunar / Badlion / Feather and other clients | their own folders, partly their own formats | Worlds, packs, servers, `options.txt` where present; keybinds and HUD layout where the file is readable (best effort) |
+| Map mods (Xaero's, JourneyMap) | per-mod waypoint files | Waypoints into RomanicaClient's waypoints |
+
+Exact paths and formats are confirmed per source when its importer is built;
+none are assumed here.
+
+### What moves
+
+- **Always**: worlds, screenshots, resource packs, shader packs, server list,
+  video/audio settings, keybinds (vanilla format).
+- **When versions match**: mods (re-downloaded from Modrinth by id and hash where
+  possible rather than copied blindly, so the files are verified).
+- **Best effort, clearly labelled**: other clients' HUD layouts and module
+  settings mapped onto RomanicaClient's equivalents (keystrokes, CPS, coordinates,
+  armour, potions...). Unmapped settings are listed so the player knows what to
+  set up again.
+- **Never**: accounts and sign-in tokens from other launchers (the player signs in
+  again with Microsoft; reading another app's tokens would be token theft by
+  another name), other clients' cosmetics, capes or paid content, their assets.
+
+### How it works
+
+- Launcher "Switch to Romanica" wizard (also offered in D18 onboarding):
+  scan → show what was found per source → player ticks what to bring → **copy**
+  into a Romanica instance → summary of what moved and what didn't.
+- **Copy, never move or modify** the source; the old launcher keeps working.
+  Backup rules from 0a apply.
+- Big worlds copy in the background with progress; free disk space checked
+  first.
+
+### Evidence
+
+Unit tests per importer against fixture folders built in temp directories (never
+real user data, per AGENTS.md). One manual run per real source launcher on the
+owner's PC before that importer is advertised.
+
+### Order
+
+1. Vanilla launcher (largest audience, simplest format).
+2. Modrinth App and Prism-style launchers (open formats).
+3. CurseForge.
+4. Other clients' settings/HUD mapping, one client at a time, most-used first.
+5. Waypoints from map mods.
