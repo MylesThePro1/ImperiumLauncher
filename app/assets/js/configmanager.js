@@ -67,9 +67,14 @@ exports.getAbsoluteMaxRAM = function(_ram){
     return Math.floor((mem-(gT16 > 0 ? (Number.parseInt(gT16/8) + (16*1073741824)/4) : mem/4))/1073741824)
 }
 
+exports._resolveSelectedRAM = resolveSelectedRAM
 function resolveSelectedRAM(ram) {
     if(ram?.recommended != null) {
-        return `${ram.recommended}M`
+        // Never default above what this PC can spare (getAbsoluteMaxRAM): on a
+        // 4 GB PC the 4 GB recommendation would starve Windows and crash the game.
+        const ceiling = exports.getAbsoluteMaxRAM(ram) * 1024
+        const floor = ram.minimum != null ? ram.minimum : 0
+        return `${Math.max(floor, Math.min(ram.recommended, ceiling))}M`
     } else {
         // Legacy behavior
         const mem = os.totalmem()
