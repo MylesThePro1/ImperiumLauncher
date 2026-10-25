@@ -223,11 +223,13 @@ Custom capes (owner direction 2026-10-25: player uploads, maybe paid capes):
   uploads will include offensive and copyrighted images. A new cape is visible
   only to its owner until approved; a report button; staff can remove it and ban
   uploaders; takedowns go through the existing /legal/copyright process.
-- **Selling vs free uploads**: if anyone can upload any cape for free, paid
-  capes have little value. Options: free moderated uploads plus paid
-  animated/limited Romanica capes, or paid upload slots. Sell through the
-  existing PayNow store. Check Mojang's commercial usage guidelines before
-  selling, and never make capes that imitate official Mojang capes.
+- **Business model** (owner decision 2026-10-25, recorded in RomanicaClient
+  `PRODUCT.md`): the client and launcher stay free with every feature, no ads, no
+  upsells. Custom cape uploads are a free feature. Paid cosmetics exist only when
+  they belong to the server (rank capes, event capes) and are sold through the
+  existing Romanica store, never pushed inside the client. Check Mojang's
+  commercial usage guidelines before selling, and never imitate official Mojang
+  capes.
 - **Who sees them**: only RomanicaClient users (and players of mods that read
   our API). Vanilla clients only ever show Mojang capes; a server can't change
   that.
