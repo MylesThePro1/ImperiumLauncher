@@ -5,9 +5,9 @@ title = "Romanica Launcher"
 
 [ejs.landing]
 mediaGitHubURL = "https://github.com/Romanica-MC/RomanicaLauncher"
-mediaXURL = "https://x.com/PlayImperiumMC"
-mediaInstagramURL = "https://www.instagram.com/playimperium_mc/"
-mediaYouTubeURL = "https://www.youtube.com/@PlayImperiumMC"
+mediaXURL = "https://x.com/romanicamc"
+mediaInstagramURL = "https://www.instagram.com/romanicamc/"
+mediaYouTubeURL = "https://www.youtube.com/@romanicamc"
 mediaDiscordURL = "https://discord.gg/9qdP3Uqx3q"
 
 [ejs.settings]
