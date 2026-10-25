@@ -1317,3 +1317,128 @@ attaches the redacted log.
 4. S7 benchmarks, then S8 comparison page.
 5. S2 Modrinth listing (after the brand rename and Azure swap, G7).
 6. S4 public cape display, S5 messaging, S6 first-run pointers, S11 guide.
+
+## 14. Win over everyone: launcher+client as one, Bedrock players, other clients' users, AFK users, every version
+
+Owner direction (2026-10-25): make the launcher and client tightly integrated;
+show capes from other cape plugins/providers; give Bedrock players everything so
+they lose nothing; find every reason people love other clients and AFK tools and
+cover it; support all the versions people love. Research sources at the end;
+most are guides and community posts, so treat popularity claims as opinion.
+
+### 14.1 Launcher and client as one product
+
+Today they're two programs that happen to share a brand. Make them one:
+
+- **One account store** (S3, encrypted B7): sign in once, both know you.
+- **One settings and profile store**: HUD layout, keybinds, per-server profiles
+  live in one place the launcher can show and edit, and back up (0a).
+- **Live link while playing**: a loopback-only local connection (random port,
+  per-session secret) between launcher and client:
+  - client shows Console accounts and lets you "play as" one (6d);
+  - launcher shows what you're playing, server, playtime;
+  - in-game menu opens launcher features: content browser (C11), instances,
+    imports (10), performance settings (P9), crash reports (C14).
+- **One updater**: the launcher updates itself, the client and the pack together,
+  with the same channels (C10) and the same evidence gates.
+- **One look**: shared design tokens (`docs/design/`), so launcher and in-game
+  menus feel like the same app.
+- **Quick Play** from the launcher straight into Romanica or any saved server (12).
+
+### 14.2 Capes from other providers: approved
+
+Owner decision: show capes and cosmetics from other cape plugins/providers
+(OptiFine, MinecraftCapes and similar public sources), display only, as in 6b's
+"seeing their capes" plan: per-provider setting, cached, no Romanica hosting,
+never copying their images into our repos. Check each provider's terms first.
+
+### 14.3 Bedrock players: everything they'd miss
+
+Why players pick Bedrock today, and RomanicaClient's answer:
+
+| Bedrock reason | Our answer | Status |
+|---|---|---|
+| Play with friends on console/phone | Join Bedrock servers (ViaBedrock add-on, tested on CubeCraft); Bedrock friends join Romanica (Geyser); host a world that Bedrock friends can join (host-a-world + Geyser, 6) | Partly working; friend-hosted Bedrock worlds untested |
+| Runs well on weak PCs | Performance stack, hardware-aware defaults (6c), benchmark vs Bedrock on a weak PC (S7) | Planned; must be proven |
+| Easy, no setup | One installer, one sign-in, Quick Play | Planned |
+| Controller (and touch) | Controller support (D15); touch is limited on Java, say so | Planned |
+| Featured servers (The Hive, CubeCraft…) | Joinable via ViaBedrock | Experimental |
+| Realms (Bedrock) | Add-on claims Realms support | Untested |
+| Ray tracing (RTX) | Iris shaders incl. path-traced packs | Partial (different look) |
+| Bedrock-style controls (e.g. bridging by placing against the block you stand on) | Optional client setting on servers that allow it; never on by default | To evaluate |
+| Bedrock-style UI | Optional "Bedrock-style" theme for menus/inventory | Candidate |
+| Marketplace skins, worlds, add-ons | **Not possible** (Microsoft-store content); Java's free mods/packs via content browser instead | Can't match |
+| Persona/character-creator skins | **Not possible** on Java; standard skins only | Can't match |
+| Xbox achievements / gamerscore | **Not possible** (tied to Bedrock as a title) | Can't match |
+
+"Lose nothing" is achievable for playing with friends, servers, performance and
+ease; it isn't for Marketplace purchases, personas and achievements. The
+comparison page (S8) must say that plainly.
+
+### 14.4 Why people love other clients, and our cover
+
+From the research and section 12: (1) better FPS than vanilla, especially on weak
+PCs; (2) everything built in, no mod setup; (3) free; (4) cosmetics; (5) friends
+and chat; (6) approved on big servers (Hypixel); (7) PvP features; (8) a clean
+look. Our cover: (1) 6c + S7 proof, (2) the pack + presets, (3) free forever,
+(4) official capes + other providers' capes (14.2) + emotes, (5) Xbox friends +
+Discord, (6) allowed-mods work (S10, G3) and the server API plugin (12),
+(7) section 12 PvP list, (8) PRODUCT.md design rules. Plus what they don't have:
+open source, no ads, Bedrock servers, Console, Romanica features (12a).
+
+### 14.5 AFK and console tools: the full feature set
+
+Collected from Minecraft Console Client (MCC) and common open-source AFK bots
+(OQMineBot's own docs weren't found): everything below goes into Console (6d),
+Java and Bedrock (mineflayer / bedrock-protocol, or ViaBedrock), within each
+server's rules and the hard lines (no anticheat evasion, no spam, no PvP or
+griefing automation):
+
+- Anti-AFK movement modes: jump, sneak, small circle, random walk, look around.
+- Auto-relog/reconnect with backoff (done: 6d), join queue (section 11).
+- Move to a block/coordinates after joining; chunk loading in place.
+- Script scheduler (timed actions), auto-respond rules, periodic messages
+  (rate-limited, owner hard line against spam).
+- Auto-eat, auto-respawn, leave on low health (done: 6d).
+- Auto-fish, auto-drop/auto-craft, basic inventory management: player's choice
+  per server; on Romanica governed by the server's rules (server-gated like the
+  client's existing auto-fish).
+- Mob-only auto-attack for AFK farms where the server allows it; never players.
+- Chat log, keyword alerts, mail/message relay, desktop + optional Discord
+  webhook alerts (done: 6d).
+- Local remote control: a loopback/LAN web dashboard and a documented local API
+  (WebSocket) for players who script their own tools. Off by default.
+- Session recording (replay) of a bot session.
+- Play-as with rejoin (done: 6d); seamless handover later.
+
+### 14.6 Every version people love
+
+Data: an undated bStats (test site) snapshot of ~155k servers showed 1.21.4
+~22%, 1.21.1 ~18%, 1.21.3 ~10%, 1.20.1 ~9%, 1.20.4 ~8%, 1.8.8 ~4%; plus the
+owner's research list (26.3, 26.2, 26.1.2, 1.21.11, 1.21.9, 1.21.5, 1.21.1,
+1.20.2, 1.20.1, 1.19.2, 1.18.2, 1.16.5, 1.15.2, 1.14.4, 1.12.2, 1.10.2, 1.8.9,
+1.7.10, b1.7.3). Re-check live bStats before committing.
+
+"All versions supported" splits into three layers, done in this order:
+
+1. **Join any server version** from the latest client: ViaFabricPlus (already
+   in the pack). Covers server compatibility for every version now.
+2. **Launch any version** in the launcher (vanilla, Fabric, Forge, NeoForge,
+   Quilt, OptiFine: sections 2-3). Every version on the list becomes playable,
+   with the performance preset where one exists.
+3. **RomanicaClient features on a version**: full features on the top tier
+   (26.x, 1.21.11, 1.21.1), then 1.20.1 and 1.8.9; a lighter "core" build (HUD,
+   keystrokes, zoom, freelook, profiles) for the rest, built from the shared
+   `common` module so one feature change reaches every version.
+
+## Sources for section 14
+
+- [Briggo: Bedrock vs Java 2026](https://briggo.com/en/guides/minecraft-bedrock-vs-java)
+- [Sportskeeda: reasons Bedrock is better](https://sportskeeda.com/minecraft/5-reasons-minecraft-bedrock-better-java)
+- [GGServers: why some refuse Bedrock](https://ggservers.com/blog/why-some-players-refuse-to-play-minecraft-bedrock-edition/)
+- [Lunar: what is Lunar Client](https://www.lunarclient.com/news/what-is-lunar-client)
+- [BisectHosting: what makes a good client](https://www.bisecthosting.com/zh-cn/blog/what-makes-a-good-minecraft-client)
+- [MCC on 9minecraft](https://www.9minecraft.net/minecraft-console-client), [wiki.vg client list](https://wiki.vg/Client_List)
+- [Afk-Bot (GitHub)](https://github.com/hackerthatknow/Afk-Bot), [Minecraft-bot (GitHub)](https://github.com/KTGAMER/Minecraft-bot)
+- [bStats Bukkit global (test site)](https://test.bstats.org/global/bukkit)
+- [Game Server Kings: 2026 version numbering](https://www.gameserverkings.com/knowledge-base/minecraft/updating-your-server-version/)
