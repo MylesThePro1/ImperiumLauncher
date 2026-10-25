@@ -558,6 +558,68 @@ so players can buy from the Romanica store without leaving the game.
 - Evidence: a PayNow sandbox order completed from the in-game screen and delivered
   in game, on the owner's PC.
 
+## 6g. Our own optimisation of Minecraft and the launcher
+
+Owner direction (2026-10-25): go through Minecraft's code ourselves, cut what
+players don't need and optimise, instead of relying only on other people's mods.
+
+### Ground rules
+
+- **Runtime only.** Mojang's EULA forbids distributing a modified game, and
+  AGENTS.md forbids committing Mojang assets. The launcher keeps downloading the
+  official game from Mojang; RomanicaClient changes behaviour at runtime with
+  Mixin. Mixin can reach any method, so this is not a limit on what we can change.
+- **Since 26.x the game ships unobfuscated**, so reading it is far easier than on
+  older versions. Read and profile it locally; never commit decompiled game code.
+- **Measure first, change second.** No optimisation without a profile showing the
+  cost and a before/after on real hardware (CI has no GPU).
+- **Don't fight the performance mods in the pack.** Sodium, Lithium, ModernFix and
+  co. already patch the hottest paths; a second patch to the same method conflicts.
+  Work where they don't, and contribute general fixes to them upstream.
+
+### Our edge over general mods
+
+We know our players' workload: OP prison mining (Nuke/VeinMiner breaking hundreds
+of blocks a second, enchant particles, block-break sounds), crowded spawn and
+crates, Romanica's HUD, legions, the map. General mods optimise the average case;
+we optimise this one.
+
+### Client work items
+
+| # | Item | How it's found / proven |
+|---|---|---|
+| O1 | Profile the Romanica workload: busy mine during Nuke procs, crowded spawn, crate openings, long sessions (memory growth) | spark / Java Flight Recorder on the owner's PC; publish flame graphs in docs/ |
+| O2 | Mass block-break path: chunk section rebuilds, particle and sound bursts, light updates when a mine regenerates | O1 profile; target: no frame spike during a full-mine Nuke |
+| O3 | Startup time: defer or skip work players don't need at launch (unused languages, narrator setup, Realms/news fetches, data that loads lazily fine) | Startup timing log, before vs after |
+| O4 | Memory: duplicate data, caches that never shrink, RomanicaClient's own leaks over a multi-hour session | Heap dumps after 3 h; RAM vs time chart |
+| O5 | Networking: the high entity/particle/sound packet rates prison servers send | Packet stats from the client; pairs with plugin-side batching |
+| O6 | Turn off what players don't use, as settings, not deletions (e.g. features unused on servers, optional Mojang telemetry where the game allows it) | Settings page; each switch measured |
+| O7 | RomanicaClient's own code: HUD, menus, minimap, enforcement layer | Same profiles; it's the code we fully own |
+
+Server-side counterpart: many client costs come from what the server sends
+(particles, block updates). The plugin can batch and trim those too; pair O2/O5
+with plugin changes.
+
+### Launcher work items
+
+- L1: remove dead code inherited from Helios (e.g. the old Mojang
+  username/password login: Mojang accounts were retired in favour of Microsoft
+  accounts), unused UI and dependencies.
+- L2: installer size (0.2.7 installer is ~105 MB): audit what's packed.
+- L3: launcher startup and idle use: it should use almost nothing while the game
+  runs.
+- Each removal: tests + lint green, and a `smoke.yml` run that writes a real game
+  log (see the 0.2.8 note: CI runs so far start the game but never get a
+  `latest.log`).
+
+### Order
+
+1. O1 profiling (everything else depends on it).
+2. O2 mass block-break, the most Romanica-specific win.
+3. L1 launcher cleanup (low risk, makes later work easier).
+4. O3 startup, O4 memory.
+5. O5, O6, O7, L2, L3 as profiles justify.
+
 ## 7. Suggested order
 
 1. Launcher stable: Fabric manifest fix, release, real launch on the owner's PC.
