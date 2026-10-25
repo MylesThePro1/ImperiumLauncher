@@ -1367,13 +1367,13 @@ Why players pick Bedrock today, and RomanicaClient's answer:
 | Ray tracing (RTX) | Iris shaders incl. path-traced packs | Partial (different look) |
 | Bedrock-style controls (e.g. bridging by placing against the block you stand on) | Optional client setting on servers that allow it; never on by default | To evaluate |
 | Bedrock-style UI | Optional "Bedrock-style" theme for menus/inventory | Candidate |
-| Marketplace skins, worlds, add-ons | **Not possible** (Microsoft-store content); Java's free mods/packs via content browser instead | Can't match |
-| Persona/character-creator skins | **Not possible** on Java; standard skins only | Can't match |
-| Xbox achievements / gamerscore | **Not possible** (tied to Bedrock as a title) | Can't match |
+| Marketplace skins, worlds, add-ons | Free instead: upload any skin you want (Mojang's skin upload, through the skin screen), any cape through cape mods/providers (14.2, e.g. MinecraftCapes), and any mods, resource packs, shaders and worlds through the content browser (C11). Marketplace purchases themselves can't move over | Free alternative |
+| Persona/character-creator skins | Regular Java skins (standard and slim, any design, uploaded free through the skin screen) | Java skins |
+| Xbox achievements / gamerscore | Minecraft's own Java achievements (advancements), plus a RomanicaClient achievements view and Romanica server achievements (the plugin already has them) | Java achievements |
 
-"Lose nothing" is achievable for playing with friends, servers, performance and
-ease; it isn't for Marketplace purchases, personas and achievements. The
-comparison page (S8) must say that plainly.
+"Lose nothing" covers playing with friends, servers, performance, ease, skins,
+capes, content and achievements (Java's own, free). What can't move over is
+anything bought on the Marketplace; the comparison page (S8) says that plainly.
 
 ### 14.4 Why people love other clients, and our cover
 
@@ -1388,8 +1388,14 @@ open source, no ads, Bedrock servers, Console, Romanica features (12a).
 
 ### 14.5 AFK and console tools: the full feature set
 
-Collected from Minecraft Console Client (MCC) and common open-source AFK bots
-(OQMineBot's own docs weren't found): everything below goes into Console (6d),
+Collected from OQMineBot (the owner's favourite; its official site and listing,
+2026-10-25: cloud-hosted browser dashboard, free plugins for SkyBlock AFK alts,
+macros, auto-farming, mob grinding, auto-fishing and cobblestone-generator
+farms, Baritone-style pathfinding, a macro builder, a plugin API, 1.8 to 26.2,
+paid plans for 10-75 bots), Minecraft Console Client (MCC) and common open-source
+AFK bots. Ours is local and free, with no bot cap (join queue instead).
+**Left out on purpose:** TheAltening-style alt-account services (often stolen
+accounts) and cracked/offline accounts: Microsoft accounts only. everything below goes into Console (6d),
 Java and Bedrock (mineflayer / bedrock-protocol, or ViaBedrock), within each
 server's rules and the hard lines (no anticheat evasion, no spam, no PvP or
 griefing automation):
@@ -1409,6 +1415,13 @@ griefing automation):
 - Local remote control: a loopback/LAN web dashboard and a documented local API
   (WebSocket) for players who script their own tools. Off by default.
 - Session recording (replay) of a bot session.
+- **From OQMineBot**: pathfinding (walk to places, around obstacles), a visual
+  macro builder (sequence of steps: walk, mine selected blocks, deposit, wait,
+  repeat), farm presets (crops, mob grinders, cobblestone generators, fishing),
+  SkyBlock presets, and a plugin system so players can share their own macros
+  and presets. All of it is the player's choice per server and follows that
+  server's rules; on Romanica the plugin decides what's allowed (AFK and bots are
+  allowed, section 6d).
 - Play-as with rejoin (done: 6d); seamless handover later.
 
 ### 14.6 Every version people love
@@ -1442,3 +1455,88 @@ owner's research list (26.3, 26.2, 26.1.2, 1.21.11, 1.21.9, 1.21.5, 1.21.1,
 - [Afk-Bot (GitHub)](https://github.com/hackerthatknow/Afk-Bot), [Minecraft-bot (GitHub)](https://github.com/KTGAMER/Minecraft-bot)
 - [bStats Bukkit global (test site)](https://test.bstats.org/global/bukkit)
 - [Game Server Kings: 2026 version numbering](https://www.gameserverkings.com/knowledge-base/minecraft/updating-your-server-version/)
+
+## 15. Local server hosting and world joining
+
+Owner direction (2026-10-25): good local hosting features so players can host
+and join worlds easily. Everything runs on the player's PC; **zero cost to
+Romanica** (6d rule). Builds on host-a-world (section 6).
+
+### Hosting
+
+- **One click from any world**: "Host this world" on a singleplayer world (or a
+  new one). The launcher converts it into a local server world (copy, original
+  kept, 0a) and starts it. "Back to singleplayer" copies it back.
+- **Server software chosen for them**: Paper for vanilla/plugin worlds (fast,
+  plugin-capable; not Folia, 6c); a Fabric/NeoForge server for modded
+  instances, with the instance's mods. Java runtime managed like the game's.
+- **Everyone can join**:
+  - Bedrock friends: Geyser + Floodgate installed and configured automatically.
+  - Other Java versions: ViaVersion/ViaBackwards (and ViaRewind for 1.8).
+- **Settings without config files**: game mode, difficulty, slots, MOTD, world
+  seed, game rules, PvP, whitelist, view and simulation distance, hardware-aware
+  RAM (P1).
+- **Plugins, mods and data packs** for the hosted server from Modrinth/Hangar,
+  filtered by version.
+- **Admin panel**: live console, player list, kick/ban/op, chat, TPS and memory.
+- **Runs in the background** while the host plays; optional auto-stop when
+  everyone has left for N minutes; pre-generate chunks (Chunky) for smooth
+  exploring.
+- **Backups**: automatic scheduled world backups, restore, and a backup before
+  every server or version update.
+
+### Letting friends in (no Romanica relay)
+
+In order of ease:
+
+1. **LAN**: automatic on the same network.
+2. **e4mc** (already in the client): a free tunnel for Java, no setup. Third-party
+   service, no cost to us; check its limits and terms.
+3. **Automatic port opening (UPnP)** on routers that allow it, with a clear
+   warning about exposing the PC, and a test that the port is reachable.
+4. **Player's own tunnel** (playit.gg, ngrok and similar): the player signs up
+   and pastes their tunnel; needed for Bedrock friends behind strict routers
+   because Bedrock uses UDP.
+5. Manual port-forwarding guide on romanica.net (hosting docs, G8).
+
+### Joining
+
+- **Invite**: a copy-paste address or join code, a Discord "Join" button through
+  Rich Presence (14.4 / section 11), and a "Join friend" entry for Xbox friends
+  who are hosting through RomanicaClient.
+- **Modded worlds in one click**: friends with RomanicaClient get the host's mod
+  list offered as an instance (shared like a `.mrpack`), install it and join;
+  no manual mod matching.
+- **Bedrock friends** just add the address in Bedrock (Geyser handles them).
+
+### Security defaults
+
+- Online mode on (real Microsoft accounts only; Floodgate verifies Bedrock).
+- Invite-only (whitelist) by default for internet hosting; open only if chosen.
+- Console and admin panel local only; never exposed to the network.
+- Warn before UPnP/port-forwarding; show what's exposed.
+
+### 24/7 servers
+
+Local hosting runs only while the PC is on. For 24/7, the hosting guides on
+romanica.net (G8, approved) explain moving the world to a host; RomanicaClient
+can export the server folder ready to upload.
+
+### Evidence
+
+CI: start Paper + Geyser + ViaVersion from the launcher's hosting code on a
+runner, join with a headless Java bot and a headless Bedrock bot (Console's
+libraries), check both appear in the player list, stop cleanly, backup created.
+Tunnels, UPnP and real friends: owner's PC.
+
+### Order
+
+1. Host this world (Paper) + LAN + e4mc + admin panel + backups.
+2. Geyser/Floodgate and ViaVersion for mixed friends.
+3. Invites (code, Discord join), modded-world one-click join.
+4. UPnP and player-tunnel support, hosting guides.
+5. Plugin/mod browser for the hosted server, auto-stop, pre-generation.
+
+### Sources (OQMineBot)
+
+- [OQMineBot](https://minecraftbot.com/), [Console Client page](https://minecraftbot.com/console-client/), [plugin base](https://github.com/OnlyQubes/OQ.MineBot.PluginBase)
