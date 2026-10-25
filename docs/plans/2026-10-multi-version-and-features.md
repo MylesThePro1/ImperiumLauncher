@@ -246,6 +246,39 @@ Compatibility with other cape systems:
   simple, documented public endpoint (`/capes/<uuid>.png`) and offer it to
   open-source cape mods as a provider. Closed clients won't show ours.
 
+## 6c. Performance on weak and strong PCs (owner question: Folia-style threading)
+
+Folia (regionised multithreaded ticking) is server software and has no client
+equivalent. Singleplayer runs an integrated server that ticks on one main thread
+like vanilla; making that Folia-style isn't feasible as a mod (Folia breaks most
+mods and vanilla redstone/behaviour assumptions). What already runs in parallel:
+chunk meshing on worker threads (much better with Sodium, in the pack), chunk
+generation/IO on worker threads in the integrated server, networking, sound.
+
+The levers that work, in order of value:
+
+1. **Hardware-aware launcher defaults.** Today every PC gets the distro's
+   recommended 4 GB and the same G1 flags (`configmanager.js`). Instead, pick at
+   first launch from total RAM and CPU cores, still overridable in settings:
+   - RAM: about 2 GB on 4 GB machines (4 GB there makes Windows swap), 3-4 GB on
+     8 GB, 4-6 GB on 16 GB+. More than ~6-8 GB doesn't help this pack.
+   - GC: keep G1 by default; try generational ZGC on 16 GB+/6+ core PCs for fewer
+     GC stutters.
+2. **First-launch graphics preset** from the detected GPU: integrated graphics get
+   lower render distance and shaders off; strong GPUs get more. Iris shaders stay
+   opt-in.
+3. **Parallel chunk mods for singleplayer and hosting**: C2ME (parallel chunk
+   generation/IO/lighting) and ScalableLux (parallel lighting) are the closest
+   thing to Folia's gains on the client side; they matter most for singleplayer
+   and the host-a-world feature (6), less on multiplayer. Add after compatibility
+   testing with the current pack.
+4. For host-a-world, plain Paper, not Folia: Folia needs many cores and breaks
+   most plugins, and friend groups are small.
+
+All of this is performance work, so per AGENTS.md: CI FPS numbers mean nothing
+(software rendering). Each change ships with a test plan (scene, settings, before
+vs after) run on the owner's PC, ideally on one weak and one strong machine.
+
 ## 7. Suggested order
 
 1. Launcher stable: Fabric manifest fix, release, real launch on the owner's PC.
