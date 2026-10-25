@@ -1233,3 +1233,87 @@ players of other clients.
 5. Romanica-only H items from 12a (mine HUD, enchant tooltips, event alerts,
    pickaxe skins) alongside the day-one list (12b).
 6. M items as the phases they belong to come up; L items only on player demand.
+
+## 13. Switching gaps: seamless and worth it (review 2026-10-25)
+
+Owner goal: switching to RomanicaClient should be seamless and clearly
+beneficial. Walking the switch step by step, these are the gaps not covered by
+sections 10 (import), 12 (features) and 12b (day-one list).
+
+### Getting it installed
+
+**S1. First launch is slow.** The installer is ~105 MB and the first launch then
+downloads the whole game (assets and libraries, hundreds of MB) even though the
+player already has them. Reuse what's on disk: read assets and libraries from
+the vanilla `.minecraft` (and other launchers found by section 10), verify their
+hashes, and copy or hard-link instead of downloading. A switcher's first launch
+should take about as long as a normal game start.
+
+**S2. Two ways in, not one.** Some players won't change launcher. Publish
+RomanicaClient on Modrinth (G7) so it installs into the Modrinth App, Prism and
+CurseForge as a normal mod, and keep the launcher as the full experience. Both
+paths get the same features.
+
+### Signing in
+
+**S3. One sign-in, not two.** Today the launcher and the client each have their
+own Microsoft account store, so a player can end up signing in twice. Share one
+encrypted account store (B7) between launcher and client: sign in once in the
+launcher, the client already knows the account. Still never import other
+launchers' tokens (section 10).
+
+### What they'd lose by switching
+
+**S4. Bought cosmetics.** Players who paid for cosmetics in another client lose
+them in ours, and that's a real reason not to switch. They can't be transferred.
+Be upfront on the features page, and offer what we can at no hosting cost:
+show capes from public cape providers (OptiFine, MinecraftCapes and similar,
+display only, opt-in per provider, as planned in 6b before custom capes were
+dropped). Their own client's closed cosmetics stay theirs.
+
+**S5. 1.8.9 PvP players.** The biggest PvP audiences (and much of Lunar's and
+Badlion's) play 1.8.9. Until multi-version phase C, they can still join 1.8
+servers from 26.3 through ViaFabricPlus, with old-combat visuals as close as it
+allows, plus 1.7 animations (section 5). Say so clearly; don't claim 1.8.9 support
+until phase C ships.
+
+**S6. Their friends.** Friends lists in other clients don't come with them. Xbox
+friends (section 11) cover most of it; Discord join covers the rest. The first-run
+screen (D18) should point to both.
+
+### Proving it's better
+
+**S7. Benchmarks.** "Better than your old client" needs numbers. On the owner's
+PC (and one weak PC), measure RomanicaClient against the most common clients
+switchers come from, same scene and settings (6c test plan), and publish the
+method and results on the features page. If we're not ahead somewhere, fix it
+before claiming it.
+
+**S8. A comparison page.** One honest page on romanica.net: what you keep, what
+you gain (free, no ads, open source, Bedrock servers, Console, Romanica features),
+what you lose (S4, S5), and how to switch in three steps. Doubles as SEO (G8).
+
+### Safety net
+
+**S9. Easy way back.** Switching feels safe when undoing it is easy. Imports only
+copy (section 10), so the old launcher keeps working; add "Open your old
+launcher" and "Export my settings and worlds" (D16) so nobody feels locked in.
+
+**S10. Allowed on their servers.** A switcher's first worry is "will this get me
+banned on Hypixel?". Check RomanicaClient's default module set against the big
+servers' allowed-mods rules, ship server-specific safe defaults (profiles switched
+by server address, 6e), and publish a short allowed-mods page per major server
+(G3).
+
+**S11. Help during the switch.** A pinned "Switching from another client?" guide
+and a Discord channel for it (G15), plus an in-client "Report a problem" that
+attaches the redacted log.
+
+### Order
+
+1. S3 one sign-in and S1 fast first launch (they shape the first five minutes).
+2. S10 allowed-on-their-servers defaults and page.
+3. Section 10 importers (vanilla first) with S9 safety net.
+4. S7 benchmarks, then S8 comparison page.
+5. S2 Modrinth listing (after the brand rename and Azure swap, G7).
+6. S4 public cape display, S5 messaging, S6 first-run pointers, S11 guide.
