@@ -344,6 +344,61 @@ place. Learn what those tools do; copy no code or assets from them.
   on mentions, keywords, disconnects, deaths.
 - **Logs**: per-account chat log saved locally.
 
+### Pricing
+
+**Completely free, all features, local only** (owner decision 2026-10-25). It's
+an incentive to use RomanicaClient, and RomanicaClient is how players find the
+Romanica server. No paid tier, no hosted bots, no account data on our servers.
+
+### Hop in / hop out (session handover)
+
+Owner idea: an account runs in the background on few resources; the player can
+open it and play normally within seconds, **without the server seeing a
+rejoin**, then close the game and the account keeps running.
+
+How it works (the "local proxy" design, used by existing open-source 2b2t
+queue/AFK proxies):
+
+1. Each running account is a small local proxy process that holds the real
+   connection to the server and keeps the account alive (tens of MB, no game).
+2. The proxy caches the state the game needs to draw the world: chunks around
+   the player, entities, inventory, health, position, tab list, scoreboard, boss
+   bars, resource-pack state.
+3. "Hop in": RomanicaClient connects to the local proxy instead of the server.
+   The proxy replays the cached state to the game, then forwards packets both
+   ways. To the server it is the same uninterrupted session.
+4. "Hop out": the game disconnects from the proxy only; the proxy resumes
+   keeping the account online.
+
+Two speeds, player's choice per account:
+
+- **Light (default)**: proxy only. Hopping in needs the game to start (cold start
+  of a modded client is tens of seconds), but there's no rejoin and almost no
+  resource use while backgrounded.
+- **Instant**: the game stays running, minimised and throttled (Dynamic FPS
+  already drops it to near zero when unfocused). Hop-in is a couple of seconds,
+  but it holds the game's RAM (GBs) the whole time. Sensible for one main
+  account, not for ten.
+
+Hard parts to plan for:
+
+- **State completeness**: anything the proxy didn't cache (a container left
+  open, a pending teleport, map data) shows wrong until the server resends it.
+  The handover must end with the client and server agreeing on position, or
+  anticheats (Romanica's included) see a teleport and flag it. For Romanica,
+  RomanicaClient can tell the server a handover is happening over the existing
+  plugin channel; on other servers the handover must be seamless on its own.
+- **Protocol version**: the proxy and game must speak the server's protocol, or
+  the proxy translates (ViaVersion family). Bedrock servers via ViaBedrock in the
+  proxy are possible in principle, much later. Handing a session to the real
+  Bedrock game is not realistic.
+- **Licences**: study the existing proxies' designs; check their licences
+  before reusing anything, and copy nothing by default.
+
+Evidence: CI against a local Paper server: bot joins, game hops in, server log
+shows one continuous session (no quit/join), player position matches after
+handover, hop out, bot still online. Real servers and anticheats: owner's PC.
+
 ### Later (v2+)
 
 - Simple scripting (on-join commands, timed messages, reply rules), sandboxed.
