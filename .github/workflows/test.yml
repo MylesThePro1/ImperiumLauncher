@@ -29,6 +29,10 @@ jobs:
         shell: bash
 
       # A run that executes zero tests must fail, not go green.
+      - name: Type-check main process (jsconfig)
+        run: npx tsc -p jsconfig.json
+        shell: bash
+
       - name: Run tests
         run: |
           npm test -- --test-reporter=spec --test-reporter-destination=stdout --test-reporter=tap --test-reporter-destination=test-results.tap
