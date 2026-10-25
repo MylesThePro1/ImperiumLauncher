@@ -307,15 +307,28 @@ async function readRemoteEntry(url, entry) {
 
 /** Parse a fabric.mod.json buffer; throws on invalid JSON.
  *  Lenient like the game's Gson: a few published mods (ETF/EMF) embed raw
- *  control characters inside string literals — invalid per RFC 8259 but
- *  parsed fine by the loader. Strip raw control chars before JSON.parse so
- *  the validator checks what players actually run, not a stricter dialect. */
+ *  control characters — including literal newlines — inside string literals.
+ *  Invalid per RFC 8259, parsed fine by the loader. Escape control chars
+ *  inside string literals only, so structural newlines survive. */
+function lenientEscape(text) {
+  let out = '';
+  let inString = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (ch === '"' && text[i - 1] !== '\\') inString = false;
+      else if (ch === '\n') { out += '\\n'; continue; }
+      else if (ch === '\r') { out += '\\r'; continue; }
+      else if (ch === '\t') { out += '\\t'; continue; }
+      else if (ch < ' ') { out += ' '; continue; }
+    } else if (ch === '"') inString = true;
+    out += ch;
+  }
+  return out;
+}
+
 function parseMeta(buf) {
-  return JSON.parse(
-    buf
-      .toString('utf8')
-      .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, (ch) => (ch === '\t' ? '\\t' : ' '))
-  );
+  return JSON.parse(lenientEscape(buf.toString('utf8')));
 }
 
 // ---------------------------------------------------------------------------
