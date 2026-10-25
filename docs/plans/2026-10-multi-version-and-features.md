@@ -299,9 +299,10 @@ place. Learn what those tools do; copy no code or assets from them.
   joining is the players' doing, but don't advertise counts that are mostly bots.
 - **Other servers** ban bots in their rules more often than not. The tool shows
   a clear "check this server's rules" notice and stays opt-in per server.
-- **Hard lines** (same principle as 6e): no anticheat evasion, no
-  auto-mining/auto-clicking for economy gain, no spam, no PvP/griefing
-  automation, no account sharing or selling. Romanica runs its own anticheat;
+- **Hard lines** (same principle as 6e): no anticheat evasion, no spam, no
+  PvP/griefing automation, no account sharing or selling, no alt-account
+  services or cracked accounts. Farming, mining and other macros (14.5) are the
+  player's choice per server, under that server's rules. Romanica runs its own anticheat;
   shipping evasion would be shipping bypass tools against ourselves.
 
 ### Features (v1)
