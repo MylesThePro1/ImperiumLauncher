@@ -1789,8 +1789,7 @@ KOTH capture progress, enchant proc feed (compact, off by default).
 
 Owner report: on a ~20-year-old PC with 8 GB RAM (game given 2.5 GB), the game
 auto-joins Romanica on launch, loads in, and crashes ~15 s later. No crash report
-yet. Most likely cause: memory. The pack is heavy (Iris, Entity Texture/Model
-Features, Better Block Entities, ViaFabricPlus...) and Romanica then sends two
+yet. Most likely cause: memory. Romanica sends two
 resource packs (~49 MB base + ~53 MB "effects" pack with ~2,350 OptiFine-format
 model/texture files, loaded by ETF/EMF), which load gradually after joining.
 Second suspect: an old graphics driver crashing during world rendering.
@@ -1798,8 +1797,11 @@ Checked and ruled out: oversized textures (block/item atlas fits 2048x2048) and
 custom shaders (the effects pack has none).
 
 Immediate workaround (no code): launcher Settings → turn off auto-connect, raise
-RAM to 3.5-4 GB, turn off Iris, ETF, EMF, BBE and ViaFabricPlus (all already
-optional in the index).
+RAM to 3.5-4 GB, and turn off Entity Texture Features and Entity Model Features
+(optional in the index; they load the effects pack's custom models). Keep the
+performance mods on: Better Block Entities, Sodium, Lithium, FerriteCore,
+ModernFix and co.; Iris costs little with shaders off; ViaFabricPlus doesn't
+affect FPS (owner correction 2026-10-25).
 
 Fixes so players never have to do this by hand (milestone 0.3 "Stable"):
 
@@ -1808,10 +1810,11 @@ Fixes so players never have to do this by hand (milestone 0.3 "Stable"):
   launch, show the crash report (C14), and offer "Try safe mode" (W2). Stops the
   "auto-join, crash, relaunch, auto-join" loop that leaves players no way into the
   menus.
-- **W2. Safe mode / low-end preset (launcher).** One button: turns off the heavy
-  optional mods (Iris, ETF, EMF, BBE, ViaFabricPlus), keeps the
-  memory-saving ones (Sodium, Lithium, FerriteCore, ModernFix), lowers render
-  distance and effects, no auto-connect. Offered automatically after a crash and
+- **W2. Safe mode / low-end preset (launcher).** One button: turns off the
+  feature mods that load the server's custom models (ETF, EMF), forces shaders
+  off, keeps every performance mod (Sodium, Lithium, FerriteCore, ModernFix, BBE
+  and co.), lowers render distance and effects, no auto-connect. Which mods it
+  turns off gets confirmed by the crash report and W6 tests, not guessed. Offered automatically after a crash and
   chosen by default by P1/P2 on weak hardware.
 - **W3. RAM guidance (launcher).** P1's hardware-aware RAM (6c), plus a warning
   when the player sets RAM below the index's recommended value ("Romanica
