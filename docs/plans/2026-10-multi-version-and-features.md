@@ -77,20 +77,21 @@ RomanicaClient still uses four upstream services or identifiers:
 
 | Where | What | Replace with |
 |---|---|---|
-| `common/.../api/Constants.kt` | Friends, chat, status API at `api.axolotlclient.com/v1/` | api.romanica.net, signed in with the player's Microsoft account |
+| `common/.../api/Constants.kt` | Friends, chat, status API at `api.axolotlclient.com/v1/` | Microsoft's own services (Xbox friends and presence); upstream API removed (section 11 decisions) |
 | `common/.../auth/MSApi.kt` | In-client Microsoft sign-in uses **upstream's Azure app ID `938592fc-...`** | Romanica's Azure app `8b0c9e33-b6ce-40ec-ac30-c85a35dd8163` (needs the in-client sign-in flow, e.g. device code, enabled on that app) |
 | `common/.../api/Constants.kt` | Terms link `axolotlclient.com/terms` | romanica.net/legal/terms |
 | `common/src/main/resources/fabric.mod.json`, `TitleScreenMixin.kt` | Upstream homepage + update link to their Modrinth page | romanica.net/client |
 
-"Only Microsoft" in practice: Microsoft provides **who you are** (Xbox sign-in,
-already approved) and probably **who your friends are** (Xbox social API, spike
-below). Microsoft does not offer a chat, party or presence service for third-party
-Minecraft clients, so in-client chat and parties run on Romanica's backend, keyed
-by the Microsoft account. That's still no third party.
+"Only Microsoft" in practice (owner decision, section 11): Microsoft provides
+**who you are** (Xbox sign-in, already approved) and **who your friends are and
+whether they're online** (Xbox social/presence APIs, to be confirmed by the spike
+below). Xbox messaging and parties are not, as far as we know, open to third-party
+apps, so there is **no in-client chat service**: players use in-game chat on a
+shared server. No Romanica backend for social features.
 
-Order: swap the Azure ID first (smallest, it's identity), then stand up the
-friends/chat endpoints on api.romanica.net and point the client at them, then
-remove the upstream code paths. Keep the existing screens; only the backend moves.
+Order: swap the Azure ID first (done on a branch), then back the existing
+friends screen with Xbox friends/presence, then remove the upstream chat/status
+code paths.
 
 ## 1. Where the launcher is today
 
@@ -156,8 +157,8 @@ Gaps worth planning, highest value first:
 
 1. **Replay / "rewind" clips** (save the last 30-60 s on a key). Biggest gap, and
    directly feeds TikTok/Shorts growth. Large: record packets, re-render offline.
-2. **Own friends/chat backend.** See 0c: the screens exist, the backend is
-   upstream's. Move it to api.romanica.net, then add Xbox friends (below).
+2. **Friends from Microsoft.** See 0c: the screens exist; back them with Xbox
+   friends and presence instead of upstream's API. No in-client chat service.
 3. **Xbox friends list.** The Azure app (`8b0c9e33-...`) is already approved for
    XboxLive.signin. Friends should need only a second XSTS token for relying party
    `http://xboxlive.com` and a call to the Xbox social/people API. **Not verified:**
@@ -217,39 +218,10 @@ Already in RomanicaClient: the skin screen uploads and switches skins and the
 player's official Mojang capes through api.minecraftservices.com, so they show
 for everyone. No custom cape system exists yet.
 
-Custom capes (owner direction 2026-10-25: player uploads, maybe paid capes):
-
-- **Service on api.romanica.net**: upload a PNG (size + dimension limits,
-  standard and HD layouts), stored by UUID, served to RomanicaClient, which
-  renders it on players who have one.
-- **Moderation is required, not optional.** The audience includes minors and
-  uploads will include offensive and copyrighted images. A new cape is visible
-  only to its owner until approved; a report button; staff can remove it and ban
-  uploaders; takedowns go through the existing /legal/copyright process.
-- **Business model** (owner decision 2026-10-25, recorded in RomanicaClient
-  `PRODUCT.md`): the client and launcher stay free with every feature, no ads, no
-  upsells. Custom cape uploads are a free feature. Paid cosmetics exist only when
-  they belong to the server (rank capes, event capes) and are sold through the
-  existing Romanica store, never pushed inside the client. Check Mojang's
-  commercial usage guidelines before selling, and never imitate official Mojang
-  capes.
-- **Who sees them**: only RomanicaClient users (and players of mods that read
-  our API). Vanilla clients only ever show Mojang capes; a server can't change
-  that.
-
-Compatibility with other cape systems:
-
-- **Seeing their capes in our client**: OptiFine, MinecraftCapes, Cosmetica and
-  similar services serve capes from public endpoints by player name or UUID, and
-  open-source mods already show several of them together. RomanicaClient can
-  read the same endpoints at runtime. Each one is a per-provider setting, off
-  until the player turns it on: every lookup tells that provider which players
-  you're seeing, and it's a dependency on someone else's service (it degrades to
-  "no cape", never breaks anything). Check each provider's terms; display only,
-  never copy their images into our repos.
-- **Our capes in their clients**: only where they choose to read us. Publish a
-  simple, documented public endpoint (`/capes/<uuid>.png`) and offer it to
-  open-source cape mods as a provider. Closed clients won't show ours.
+**Custom capes: dropped** (owner decision, section 11). No upload service, no
+moderation queue, no cape hosting. Players keep official Mojang capes through
+the skin screen. Server-linked cosmetics, if ever sold, go through the existing
+Romanica store and the in-game store screen (6f).
 
 ## 6c. Performance on weak and strong PCs
 
@@ -341,6 +313,12 @@ place. Learn what those tools do; copy no code or assets from them.
   window, so it runs fine on weak PCs; start/stop each one or all at once.
 - **Console per account**: live chat, send chat and commands, health/hunger,
   position, who is nearby.
+- **No account limit per server** (owner decision, section 11). Instead,
+  **join-rate limiting and a join queue**: accounts connect one after another with
+  a minimum gap (default a few seconds, adjustable but never zero), and a
+  reconnect storm after a server restart is spread out with jitter. This keeps
+  players under servers' connection throttles (Paper kicks clients that
+  reconnect too fast) and stops the tool behaving like a join flood.
 - **Stay connected**: auto-reconnect with backoff, reconnect on server restart,
   scheduled join/leave times. Anti-AFK movement only where the server's rules
   allow it (see policy).
@@ -541,8 +519,11 @@ so players can buy from the Romanica store without leaving the game.
   button). Never a pop-up, banner or prompt that interrupts play.
 - **Card details never touch Romanica code.** Payment happens only on PayNow's own
   hosted checkout page. Keeps Romanica out of card-data rules and keeps trust.
-- **Store screen**: the plugin sends the catalogue (products, prices, images, the
-  player's rank) over the existing Romanica plugin channel; RomanicaClient renders
+- **Store screen**: the catalogue (products, prices, images) comes from a small
+  **store catalogue API on Cloudflare Workers** (api.romanica.net), the only
+  Romanica-hosted service the client uses (owner decision, section 11), cached so
+  it stays within the free/paid quota (G1). The player's rank and what they own
+  come over the existing plugin channel when on Romanica. RomanicaClient renders
   it as a native, themed store screen. Vanilla/other clients keep a chest-GUI
   version from the plugin, with a checkout link.
 - **Checkout**, in order of preference:
@@ -664,7 +645,7 @@ convert (6g).
 ### Found while counting
 
 - `ClientBrandRetrieverMixin` still reports the client brand **"ImperiumClient"**
-  to every server, and the client/server channels are still named
+  to every server (decision: report standard `fabric`, see section 11), and the client/server channels are still named
   `imperiumclient:*` (`ImperiumClientDataChannels.kt` in the plugin). Renaming the
   brand is a one-liner; renaming the channels must change client and plugin in
   the same release (accept both names for one release, then drop the old). Track
@@ -673,7 +654,7 @@ convert (6g).
 ## 7. Suggested order
 
 1. Launcher stable: Fabric manifest fix, release, real launch on the owner's PC.
-2. Off AxolotlClient (0c): Azure ID swap, then friends/chat on api.romanica.net.
+2. Off AxolotlClient (0c): Azure ID swap, then friends from Xbox; drop upstream chat.
 3. Xbox friends spike (one real sign-in, no UI).
 4. Instance model with the managed/player-owned split and backups (0a).
 5. Import existing installs (0b); any vanilla/Fabric version launches.
@@ -966,3 +947,73 @@ isn't scheduled: store catalogue over the plugin channel (6f), handover notice
 **G10. Backups for new backend data.** Friends lists, cape uploads and moderation
 records become player data we must not lose: daily backups and a tested restore
 before those features launch.
+
+### Owner decisions on section 11 (2026-10-25)
+
+These supersede earlier text where they conflict; the affected sections are
+updated in place.
+
+- **Social and chat → Microsoft.** Friends and presence come from Xbox services
+  (0c, spike first). No Romanica social backend and no in-client chat service,
+  since Xbox messaging/parties aren't, as far as we know, open to third-party apps.
+  Removes most of G1's backend load and much of B9's data handling.
+- **Capes dropped; Workers only for the store catalogue.** No custom capes (6b).
+  The one Romanica-hosted client service is the store catalogue API on Cloudflare
+  Workers (6f). G1 now applies to that API alone; G10 backups apply only to what it
+  stores.
+- **Console: no account limit per server; join-rate limiting and queueing**
+  instead (6d). Replaces G2's per-server cap; the minimum join gap and the hard
+  lines stay.
+- **Client identity: standard Fabric.** RomanicaClient reports `fabric` as its
+  `minecraft:brand`, the same as any Fabric install (drop the brand override in
+  `ClientBrandRetrieverMixin`). Replaces G3's "honest brand string". To be fully
+  standard on other servers, the client also **registers its Romanica plugin
+  channels only when connected to a Romanica address** (the enforcement layer's
+  allowlist already scopes this), because servers can see registered channel
+  names. On Romanica, the server identifies the client by its channels, not its
+  brand. Do this together with the `imperiumclient:*` channel rename (6h).
+- **Approved:** the automated credits and licences screen (G5), the companion
+  plugin roadmap (G9), and hosting docs/guides on romanica.net (G8).
+
+### Round 3 gaps
+
+**G11. Microsoft and Mojang rate limits for many accounts.** With no account cap,
+signing in and refreshing many accounts hits Microsoft/Xbox/Minecraft services
+rate limits (and looks like abuse to them). Spread sign-ins and token refreshes
+out (same queue as joins), back off on 429 responses, and cache tokens until near
+expiry. Test with a realistic account count on the owner's PC.
+
+**G12. GitHub as the download host.** The launcher reads its index and vendored
+jars from `raw.githubusercontent.com`. Raw URLs are rate-limited and not meant as
+a CDN; vendored jars in the repo also bloat it. Move large artifacts to GitHub
+Releases (built for downloads), keep raw only for small JSON, and add a fallback
+mirror path (e.g. the Workers API serving the index from cache) if raw is
+throttled. Watch launch failures for 403/429 from GitHub.
+
+**G13. Antivirus false positives.** An unsigned launcher that ships a multi-account
+bot tool and hacked-client compatibility is a classic false-positive target for
+Windows Defender and other AV. Code signing (B8) helps most; also submit each
+release to Microsoft's false-positive portal and keep Console as a clearly
+labelled, open-source part of the launcher.
+
+**G14. Upstream AxolotlClient after the break.** Dropping their services doesn't
+end the code relationship: the client is still largely their LGPL code. Decide
+whether to keep merging upstream fixes (security and Minecraft-update fixes are
+valuable) or freeze; either way keep the LGPL notices and credits (G5) and track
+their security fixes.
+
+**G15. Support load.** Free client, Console, Bedrock servers, imports and
+hacked-client compatibility will bring many support questions. Bug-report and
+crash templates (C14), a pinned Discord support channel, the FAQ (G8), and an
+in-client "Report a problem" that attaches the redacted log. Plan who answers.
+
+**G16. Microsoft/Mojang brand and usage rules.** Client name, website copy and
+store pages must follow Minecraft's usage guidelines: no implying official
+status, no Mojang marks in the client's name or icon, the "not an official
+Minecraft product" line everywhere it's distributed (README already has it;
+add to the website, Modrinth page and installer).
+
+**G17. Feature flags for everything unfinished.** AGENTS.md's lesson: a Microsoft
+sign-in button went live before it worked. Every feature in this plan ships behind
+a flag that is off until its evidence exists (Bedrock joining, Console, store
+checkout, imports), so partial work can merge without reaching players.
