@@ -69,10 +69,23 @@ const QUALITY_MODS = [
 ];
 
 const VISUAL_MODS = [
-  'continuity',            // connected textures — the Romanica pack is CTM-ready
+  // continuity REMOVED (owner directive 2026-10-25): it breaks the Romanica
+  // pack's textures in play. Do not re-add without an in-game check on the pack.
   'entitytexturefeatures', // random/emissive entity variants (148 entity textures in-pack)
   'entity-model-features', // custom entity models from the pack
   'iris',                  // shader support + renderer-layer optimizations
+];
+
+// Performance round 3 (owner asked for more perf). c2me/scalablelux ship alphas
+// as their normal channel (perpetual-alpha projects); pinned by hash either way.
+const PERFORMANCE_MODS_R3 = [
+  'c2me-fabric',                // parallel chunk loading — the big one for mine/plot worlds
+  'krypton',                    // networking stack optimization
+  'badoptimizations',           // micro-optimization collection
+  'particle-core',              // particle engine optimization (needs fzzy-config below)
+  'fzzy-config',                // config lib for particle-core (TDL license, modpack-ok)
+  'sodium-shadowy-path-blocks', // sodium addon fixing shadowy path blocks (in the owner's Alpine set)
+  'scalablelux',                // lighting engine (Starlight successor) — mines are lighting-heavy
 ];
 
 const CROSSVERSION_MODS = [
@@ -296,7 +309,7 @@ async function imperiumClientModule(localJarPath, versionOverride) {
   }
   return {
     id: `net.imperiummc:imperium-client:${VERSION}`,
-    name: 'Imperium Client',
+    name: 'Romanica Client',
     type: 'FabricMod',
     artifact: artifact(releaseUrl, hash, size, sha256),
   };
@@ -363,7 +376,7 @@ async function main() {
 
   console.log('Resolving performance pack ...');
   const perf = [];
-  for (const slug of [...PERFORMANCE_MODS, ...PERFORMANCE_MODS_EXTRA, ...QUALITY_MODS, ...VISUAL_MODS, ...CROSSVERSION_MODS]) {
+  for (const slug of [...PERFORMANCE_MODS, ...PERFORMANCE_MODS_EXTRA, ...PERFORMANCE_MODS_R3, ...QUALITY_MODS, ...VISUAL_MODS, ...CROSSVERSION_MODS]) {
     try {
       perf.push(await modrinthModule(slug));
       console.log(`  ${slug} ok`);
