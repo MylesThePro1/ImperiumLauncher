@@ -301,8 +301,9 @@ place. Learn what those tools do; copy no code or assets from them.
   a clear "check this server's rules" notice and stays opt-in per server.
 - **Hard lines** (same principle as 6e): no anticheat evasion, no spam, no
   PvP/griefing automation, no account sharing or selling, no alt-account
-  services or cracked accounts. Farming, mining and other macros (14.5) are the
-  player's choice per server, under that server's rules. Romanica runs its own anticheat;
+  services. Offline accounts only behind the ownership gate (Accounts policy).
+  Farming, mining and other macros (14.5) are the player's choice per server,
+  under that server's rules. Romanica runs its own anticheat;
   shipping evasion would be shipping bypass tools against ourselves.
 
 ### Features (v1)
@@ -1395,8 +1396,10 @@ macros, auto-farming, mob grinding, auto-fishing and cobblestone-generator
 farms, Baritone-style pathfinding, a macro builder, a plugin API, 1.8 to 26.2,
 paid plans for 10-75 bots), Minecraft Console Client (MCC) and common open-source
 AFK bots. Ours is local and free, with no bot cap (join queue instead).
-**Left out on purpose:** TheAltening-style alt-account services (often stolen
-accounts) and cracked/offline accounts: Microsoft accounts only. everything below goes into Console (6d),
+**Accounts** (owner request 2026-10-25, see "Accounts policy" below): any number
+of the player's own Microsoft accounts, plus offline ("cracked") accounts once an
+owned copy is verified. Alt-account services such as TheAltening are not
+integrated. everything below goes into Console (6d),
 Java and Bedrock (mineflayer / bedrock-protocol, or ViaBedrock), within each
 server's rules and the hard lines (no anticheat evasion, no spam, no PvP or
 griefing automation):
@@ -1541,3 +1544,28 @@ Tunnels, UPnP and real friends: owner's PC.
 ### Sources (OQMineBot)
 
 - [OQMineBot](https://minecraftbot.com/), [Console Client page](https://minecraftbot.com/console-client/), [plugin base](https://github.com/OnlyQubes/OQ.MineBot.PluginBase)
+
+## 16. Accounts policy (owner request 2026-10-25)
+
+**Microsoft accounts**: any number, all the player's own, signed in through the
+spaced queue (G11).
+
+**Offline ("cracked") accounts: allowed, gated on an owned copy.** Same rule
+Prism Launcher uses: offline accounts can only be added while a Microsoft account
+that owns Minecraft is signed in, verified with the Minecraft services
+entitlement check the client already has (`checkOwnership` in `MSApi.kt`).
+Re-check periodically; if no owning account remains, offline accounts stop
+working. Used only for servers running in offline mode (many cracked servers,
+LAN, the host's own offline test server). Microsoft's terms don't name this case
+explicitly; it's common practice, not a guarantee, and worth a lawyer's check
+before it's advertised. Offline names can impersonate others on offline-mode
+servers; that's the server's responsibility, and the UI says so.
+
+**Alt-account services (TheAltening and similar): not integrated.** Reasons:
+- Microsoft's terms forbid buying, selling or sharing accounts, which is what
+  these services do, and many such accounts are stolen from real players.
+- They work by routing the session through the service's own login servers
+  instead of Microsoft's, i.e. the client would send player sessions to a third
+  party.
+- Building it in risks Romanica's approved Azure app, invites antivirus flags
+  (G13) and contradicts the clean, open-source client (sections 11, 6e).
