@@ -826,6 +826,13 @@ class ProcessBuilder {
                         // this same tick, every native must already be on disk.
                         if(!shouldExclude){
                             try {
+                                // Zip-slip guard: entry names are attacker-controlled if a
+                                // natives jar is ever tampered — `..` segments, absolute
+                                // paths, or backslashes must never reach path.join.
+                                if(fileName.includes('..') || path.isAbsolute(fileName) || fileName.includes('\\')){
+                                    logger.warn(`Skipping unsafe natives entry name: ${fileName}`)
+                                    continue
+                                }
                                 const dest = path.join(extractDir, fileName)
                                 fs.ensureDirSync(path.dirname(dest))
                                 fs.writeFileSync(dest, zipEntries[i].getData())

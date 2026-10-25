@@ -110,16 +110,17 @@ async function fabricModules() {
     // Every library from the profile with hash metadata. The profile's library list
     // also repeats the loader itself as a url-only entry — skip those; the loader
     // jar is the top-level module artifact (hashed separately above).
-    ...profile.libraries.filter((lib) => lib.size && lib.md5).map((lib) => ({
-      id: lib.name,
-      name: lib.name.split(':').slice(0, 2).join(':'),
-      type: 'Library',
-      artifact: {
-        size: lib.size,
-        MD5: lib.md5,
-        url: mavenUrl(lib.url, lib.name),
-      },
-    })),
+    // Library artifacts are downloaded once here so the distro can carry sha256 —
+    // the loader subModules sit on the code-execution path and MD5 is collision-broken
+    // (pass-4 supply-chain finding: they were the only MD5-verified artifacts).
+    ...(await Promise.all(
+      profile.libraries.filter((lib) => lib.size && lib.md5).map(async (lib) => ({
+        id: lib.name,
+        name: lib.name.split(':').slice(0, 2).join(':'),
+        type: 'Library',
+        artifact: await hashArtifact(mavenUrl(lib.url, lib.name)),
+      }))
+    )),
   ];
 
   // The loader jar itself.
