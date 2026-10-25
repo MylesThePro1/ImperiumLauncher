@@ -4,10 +4,91 @@ const crypto = require('crypto')
 const fs     = require('fs-extra')
 const os     = require('os')
 const path   = require('path')
+const { getMojangOS } = require('helios-core/common')
 
-const { verifyFiles } = require('../app/assets/js/fileverifier')
+const { buildChecklist, verifyFiles } = require('../app/assets/js/fileverifier')
 
 const sha1 = (buf) => crypto.createHash('sha1').update(buf).digest('hex')
+
+const NATIVES = { windows: 'natives-windows', linux: 'natives-linux', osx: 'natives-osx' }
+
+// A mojang processor/server pair shaped like buildChecklist consumes them.
+function checklistFixture(dir){
+    return {
+        mojang: {
+            commonDir: dir,
+            assetPath: path.join(dir, 'assets'),
+            assetIndex: { objects: { stone: { hash: 'a'.repeat(40), size: 10 } } },
+            versionJson: {
+                id: '26.3',
+                libraries: [],
+                downloads: { client: { sha1: 'c'.repeat(40), size: 20, url: 'https://example.invalid/client.jar' } },
+                logging: { client: { file: { id: 'client-1.12.xml', sha1: 'f'.repeat(40), size: 5, url: 'https://example.invalid/log.xml' } } }
+            }
+        },
+        server: {
+            modules: [{
+                rawModule: { id: 'com.romanica:pack', artifact: { MD5: 'd'.repeat(32), size: 7, url: 'https://example.invalid/pack.jar' } },
+                getPath: () => path.join(dir, 'mods', 'pack.jar'),
+                hasSubModules: () => false
+            }]
+        }
+    }
+}
+
+const artifact = (path_, seed) => ({ sha1: seed.repeat(40), size: 3, url: `https://example.invalid/${path_}`, path: path_ })
+
+test('buildChecklist covers assets, plain and native libraries, the client jar, the log config and modules', async (t) => {
+    const { dir } = await fixture(t)
+    const { mojang, server } = checklistFixture(dir)
+    mojang.versionJson.libraries = [
+        { name: 'org.example:plain:1.0', rules: null, natives: null, downloads: { artifact: artifact('org/example/plain-1.0.jar', 'a') } },
+        { name: 'org.example:native:1.0', rules: null, natives: NATIVES, downloads: { classifiers: {
+            'natives-windows': artifact('org/example/native-1.0-windows.jar', 'b'),
+            'natives-linux': artifact('org/example/native-1.0-linux.jar', 'b'),
+            'natives-osx': artifact('org/example/native-1.0-osx.jar', 'b')
+        } } }
+    ]
+
+    const byId = Object.fromEntries(buildChecklist(mojang, server).map(item => [item.id, item]))
+    for(const id of ['stone', 'org.example:plain:1.0', 'org.example:native:1.0', '26.3 client', 'client-1.12.xml', 'com.romanica:pack']){
+        assert.ok(byId[id] != null, `${id} must be in the checklist`)
+    }
+    // The native entry must be the classifier for this OS, not another platform's.
+    assert.strictEqual(byId['org.example:native:1.0'].url, `https://example.invalid/org/example/native-1.0-${getMojangOS()}.jar`)
+})
+
+test('a compatible library with no artifact in the manifest is skipped, not fatal', async (t) => {
+    const { dir } = await fixture(t)
+    const { mojang, server } = checklistFixture(dir)
+    mojang.versionJson.libraries = [
+        { name: 'org.example:broken:1.0', rules: null, natives: null, downloads: {} },
+        { name: 'org.example:worse:1.0', rules: null, natives: null },
+        { name: 'org.example:plain:1.0', rules: null, natives: null, downloads: { artifact: artifact('org/example/plain-1.0.jar', 'a') } }
+    ]
+
+    const items = buildChecklist(mojang, server)
+    const ids = items.map(item => item.id)
+    assert.ok(!ids.includes('org.example:broken:1.0') && !ids.includes('org.example:worse:1.0'), ids.join(', '))
+    // The launch must go on: everything else is still checked.
+    assert.ok(ids.includes('org.example:plain:1.0') && ids.includes('26.3 client'), ids.join(', '))
+})
+
+test('a native library with no classifier for this OS is skipped, not fatal', async (t) => {
+    const { dir } = await fixture(t)
+    const { mojang, server } = checklistFixture(dir)
+    // Classifiers for every OS except the one running the test.
+    const otherOs = Object.keys(NATIVES).filter(os => os !== getMojangOS())
+    const classifiers = Object.fromEntries(otherOs.map(os => [NATIVES[os], artifact(`org/example/native-1.0-${os}.jar`, 'b')]))
+    mojang.versionJson.libraries = [
+        { name: 'org.example:no-classifiers:1.0', rules: null, natives: NATIVES, downloads: {} },
+        { name: 'org.example:other-os-only:1.0', rules: null, natives: NATIVES, downloads: { classifiers } }
+    ]
+
+    const ids = buildChecklist(mojang, server).map(item => item.id)
+    assert.ok(!ids.includes('org.example:no-classifiers:1.0') && !ids.includes('org.example:other-os-only:1.0'), ids.join(', '))
+    assert.ok(ids.includes('26.3 client'), 'the checklist past the skipped libraries is still built')
+})
 
 async function fixture(t){
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'imperium-verify-'))

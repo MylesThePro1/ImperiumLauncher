@@ -14,8 +14,11 @@
  */
 const fs   = require('fs-extra')
 const path = require('path')
+const { LoggerUtil } = require('helios-core')
 const { calculateHash, getLibraryDir, getVersionJarPath, getMojangOS, isLibraryCompatible } = require('helios-core/common')
 const { HashAlgo, MojangIndexProcessor } = require('helios-core/dl')
+
+const log = LoggerUtil.getLogger('FileVerifier')
 
 const CACHE_FILE = '.verified-files.json'
 const CACHE_VERSION = 1
@@ -51,8 +54,15 @@ exports.buildChecklist = function(mojang, server){
             continue
         }
         const artifact = lib.natives == null
-            ? lib.downloads.artifact
-            : lib.downloads.classifiers[lib.natives[getMojangOS()].replace('${arch}', process.arch.replace('x', ''))]
+            ? lib.downloads?.artifact
+            : lib.downloads?.classifiers?.[lib.natives[getMojangOS()]?.replace('${arch}', process.arch.replace('x', ''))]
+        // A compatible entry with no artifact to its name — or no classifier for
+        // this OS — has nothing to check or download; helios-core's validator
+        // crashes on such a manifest instead.
+        if(artifact == null){
+            log.warn(`Library ${lib.name} has no ${lib.natives == null ? 'artifact' : 'classifier for this OS'} in the version manifest, skipping.`)
+            continue
+        }
         items.push({ id: lib.name, hash: artifact.sha1, algo: HashAlgo.SHA1, size: artifact.size, url: artifact.url, path: path.join(libDir, artifact.path) })
     }
 
