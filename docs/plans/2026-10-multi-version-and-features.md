@@ -1784,3 +1784,46 @@ KOTH capture progress, enchant proc feed (compact, off by default).
 4. F launcher server card, Play Romanica, daily vote card.
 5. C client-rendered enchant effects (with 6g profiling).
 6. A remaining screens, D story/cutscenes, E social, G staff tools.
+
+## 19. Weak/old PCs: the join crash (field report 2026-10-25)
+
+Owner report: on a ~20-year-old PC with 8 GB RAM (game given 2.5 GB), the game
+auto-joins Romanica on launch, loads in, and crashes ~15 s later. No crash report
+yet. Most likely cause: memory. The pack is heavy (Iris, Entity Texture/Model
+Features, Better Block Entities, ViaFabricPlus...) and Romanica then sends two
+resource packs (~49 MB base + ~53 MB "effects" pack with ~2,350 OptiFine-format
+model/texture files, loaded by ETF/EMF), which load gradually after joining.
+Second suspect: an old graphics driver crashing during world rendering.
+Checked and ruled out: oversized textures (block/item atlas fits 2048x2048) and
+custom shaders (the effects pack has none).
+
+Immediate workaround (no code): launcher Settings → turn off auto-connect, raise
+RAM to 3.5-4 GB, turn off Iris, ETF, EMF, BBE and ViaFabricPlus (all already
+optional in the index).
+
+Fixes so players never have to do this by hand (milestone 0.3 "Stable"):
+
+- **W1. Crash-loop guard (launcher).** If the game exits with a crash within a
+  few minutes of starting, twice in a row: turn off auto-connect for the next
+  launch, show the crash report (C14), and offer "Try safe mode" (W2). Stops the
+  "auto-join, crash, relaunch, auto-join" loop that leaves players no way into the
+  menus.
+- **W2. Safe mode / low-end preset (launcher).** One button: turns off the heavy
+  optional mods (Iris, ETF, EMF, BBE, ViaFabricPlus), keeps the
+  memory-saving ones (Sodium, Lithium, FerriteCore, ModernFix), lowers render
+  distance and effects, no auto-connect. Offered automatically after a crash and
+  chosen by default by P1/P2 on weak hardware.
+- **W3. RAM guidance (launcher).** P1's hardware-aware RAM (6c), plus a warning
+  when the player sets RAM below the index's recommended value ("Romanica
+  recommends 4 GB; you've set 2.5 GB").
+- **W4. Effects pack opt-in (server).** The second ~53 MB pack is cosmetic
+  (custom models/textures). Send it only to players who turn it on (a setting in
+  RomanicaClient and a `/textures` command for everyone), or detect a safe-mode
+  client over the Romanica channel (section 18 H) and skip it. Halves the join-time
+  download and memory for everyone who doesn't want it. Owner decision.
+- **W5. Old-hardware floor.** Find and publish the minimum hardware (GPU/OpenGL
+  level, RAM, Windows version) Minecraft 26.x plus our pack actually runs on, so
+  very old PCs get a clear message instead of a crash. Test on this PC.
+- **W6. Evidence**: on the owner's old PC, before/after: joins and stays on
+  Romanica for 30 minutes with safe mode; crash-loop guard triggers on a forced
+  crash. Crash report attached to this section once collected.
