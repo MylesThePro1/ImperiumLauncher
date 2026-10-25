@@ -308,12 +308,17 @@ place. Learn what those tools do; copy no code or assets from them.
 
 ### Policy first (decide before building)
 
-- **Romanica itself kicks AFK players after 10 minutes** (`AfkService.kt`,
-  `afk-kick-timeout: 600`). A bot that keeps accounts online defeats that rule
-  unless Romanica changes it. Options: (a) bots allowed only in a designated AFK
-  area, earning nothing; (b) bots identified as such (a flag from the client) and
-  excluded from economy, vote parties and leaderboards; (c) no bots on Romanica,
-  the tool is for other servers. Owner decides; the plugin enforces it.
+- **Romanica allows AFK and player-run bots** (owner decision 2026-10-25). The
+  10-minute AFK kick was unintended; the plugin default is now 0 (never kick).
+  Romanica builds the tool and runs the server; what players do with their own
+  accounts is their choice, within the server rules.
+- **Economy check (owner call):** Romanica pays AFK income (100 Denarius/min,
+  donor-scaled, capped at 30 min per AFK session; `AfkService.kt`). The cap resets
+  every new AFK session, so a bot that briefly moves can earn indefinitely, and
+  alts can pool money with /pay. Decide whether that's fine or whether income
+  should cap per day per account.
+- **Server lists:** many server-list sites forbid inflated player counts. Bots
+  joining is the players' doing, but don't advertise counts that are mostly bots.
 - **Other servers** ban bots in their rules more often than not. The tool shows
   a clear "check this server's rules" notice and stays opt-in per server.
 - **Hard lines**, same as the no-hacked-clients rule: no anticheat evasion, no
@@ -373,7 +378,7 @@ after a server restart, clean disconnect. Microsoft sign-in and real servers:
 4. Instance model with the managed/player-owned split and backups (0a).
 5. Import existing installs (0b); any vanilla/Fabric version launches.
 5a. Performance items P1-P9 (6c), in their own order, alongside 4-5.
-5b. Romanica Console (6d): owner decides the Romanica bot policy first; v1 after the instance model.
+5b. Romanica Console (6d): v1 after the instance model (Romanica bot policy decided: allowed).
 6. RomanicaClient builds for phase A versions + performance preset.
 7. Host-a-world (Java first, then Geyser).
 8. Replay clips.
