@@ -43,9 +43,35 @@ const PERFORMANCE_MODS = [
   'ferrite-core',
   'immediatelyfast',
   'entityculling',
-  'modernfix',
   'dynamic-fps',
-  'lazydfu',
+  // modernfix: no 26.3 Modrinth build yet (graceful skip until published; the
+  // Alpine set runs 5.27.20 fine). lazydfu removed: dead for modern DFU-less MC.
+];
+
+// QoL + pack-synergy set, curated from the owner's Alpine 26.3 mod set
+// (licenses verified for modpack redistribution: CC0/MIT/LGPL/GPL/OSL-3.0).
+// Deliberately NOT included, with reasons (2026-10-25):
+//   sodium-extra + reeses-sodium-options — hard-pin sodium =0.9.2 (we ship 0.9.3-beta.1)
+//   animatica / betterblockentities / modernfix — no 26.3 Modrinth builds to pin
+//   litematica + printer — schematic printing is a dupe/cheat vector on a prison server
+//   ViaFabricPlus — the server is already cross-version via Via; client-side spoofing
+//     would confuse the enforcement layer's brand/channel review
+//   iris / lambdynlights — heavy renderer-layer cost for a curated pack
+//   controlify / e4mc / NoChatReports / debugify — later or off-scope
+const QUALITY_MODS = [
+  'rrls',            // no forced-reload wall — the 48MB pack applies in-scene
+  'fastquit',        // instant quit to title (needs cloth-config + modmenu)
+  'morechathistory', // CC0; longer scrollback
+  'language-reload', // fast locale switching (4 shipped locales)
+  'cloth-config',    // config lib for moreculling & friends
+  'modmenu',         // in-game config UI for the pack's mods
+  'moreculling',     // leaf/block-face culling on top of entityculling
+];
+
+const VISUAL_MODS = [
+  'continuity',            // connected textures — the Romanica pack is CTM-ready
+  'entitytexturefeatures', // random/emissive entity variants (148 entity textures in-pack)
+  'entity-model-features', // custom entity models from the pack
 ];
 
 const CACHE_DIR = path.join(__dirname, '..', '.distro-cache');
@@ -95,13 +121,26 @@ async function fabricModules() {
   const profile = await fetchJson(profileUrl);
   const profileBuf = await (await fetch(profileUrl, { headers: UA })).arrayBuffer();
 
+  // VENDOR the profile: meta.fabricmc.net regenerates this JSON server-side, so a
+  // sha256 pin on the live URL breaks EVERY client's download the moment Fabric
+  // republishes it (live incident 2026-10-25: the launch smoke failed with
+  // 'sha256 mismatch' on exactly this file a day after the pin was cut). The
+  // committed copy is served immutable from raw.githubusercontent and keeps the
+  // full size+md5+sha256 pin — and drops meta.fabricmc.net from the launch path.
+  const DISTRO_RAW = 'https://raw.githubusercontent.com/Romanica-MC/RomanicaLauncher/master/distribution';
+  const vendorName = `fabric-profile-${MC_VERSION}-${loaderVersion}.json`;
+  const vendorDir = path.join(__dirname, '..', 'distribution', 'vendor');
+  fs.mkdirSync(vendorDir, { recursive: true });
+  fs.writeFileSync(path.join(vendorDir, vendorName), Buffer.from(profileBuf));
+  const vendorUrl = `${DISTRO_RAW}/vendor/${vendorName}`;
+
   const subModules = [
     {
       id: `fabric-loader-${loaderVersion}-${MC_VERSION}`,
       name: 'Fabric Version Manifest',
       type: 'VersionManifest',
       artifact: artifact(
-        profileUrl,
+        vendorUrl,
         crypto.createHash('md5').update(Buffer.from(profileBuf)).digest('hex'),
         profileBuf.byteLength,
         crypto.createHash('sha256').update(Buffer.from(profileBuf)).digest('hex')
@@ -118,7 +157,11 @@ async function fabricModules() {
         id: lib.name,
         name: lib.name.split(':').slice(0, 2).join(':'),
         type: 'Library',
-        artifact: await hashArtifact(mavenUrl(lib.url, lib.name)),
+        artifact: await (async () => {
+          const u = mavenUrl(lib.url, lib.name);
+          const h = await hashArtifact(u);
+          return artifact(u, h.md5, h.size, h.sha256);
+        })(),
       }))
     )),
   ];
@@ -296,7 +339,7 @@ async function main() {
 
   console.log('Resolving performance pack ...');
   const perf = [];
-  for (const slug of PERFORMANCE_MODS) {
+  for (const slug of [...PERFORMANCE_MODS, ...QUALITY_MODS, ...VISUAL_MODS]) {
     try {
       perf.push(await modrinthModule(slug));
       console.log(`  ${slug} ok`);
