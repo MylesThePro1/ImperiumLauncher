@@ -909,3 +909,60 @@ owner's PC before that importer is advertised.
 3. CurseForge.
 4. Other clients' settings/HUD mapping, one client at a time, most-used first.
 5. Waypoints from map mods.
+
+## 11. Further gaps (review 2026-10-25, round 2)
+
+**G1. Hosting cost vs "zero cost".** Console and the launcher are free to run,
+but friends/chat, capes, store catalogue and metrics all live on api.romanica.net
+(Cloudflare Workers). The site already went dark once when the free Workers
+quota ran out (robots.ts note, 2026-10-11). Before each backend feature ships:
+estimate requests per active player, compare with the plan limits, and decide
+(free tier with hard limits, or Workers Paid). Cache everything cacheable (capes
+as static files, catalogue per minute).
+
+**G2. Abuse of the free Console.** A free multi-account bot tool can be pointed at
+other servers as a join/spam flood. That would get RomanicaClient blocked
+everywhere and hurt the brand. Built-in limits that aren't settings: a cap on
+accounts per server, a minimum delay between joins, no chat-spam features, and
+the hard lines in 6d.
+
+**G3. RomanicaClient's reputation on other servers.** Because it's compatible
+with hacked clients (6e), some anticheats or server owners may treat "Romanica
+Client" as a cheat. Keep the client itself clean: no cheat behaviour of its own,
+an honest brand string, and check it against big servers' allowed-mods rules
+(e.g. Hypixel's). Publish a short "is Romanica Client allowed?" page.
+
+**G4. Minecraft update process.** Every Minecraft release breaks mixins and the
+pack's mods. Plan an update routine: watch for releases (the
+`dependency-watch` workflows exist), update the client and pack on a branch, wait
+for Sodium/Fabric API builds, smoke + gametest, then release. Also a version
+support policy: which versions get feature updates, which only fixes, when one is
+dropped.
+
+**G5. Licence compliance for the whole pack.** The launcher distributes many
+third-party mods (MIT, LGPL, GPL). Add an in-launcher and in-client "Credits &
+licences" screen listing every bundled component, its licence and source link,
+generated from the distribution index so it can't drift.
+
+**G6. Security disclosure.** Both repos are public; add a `SECURITY.md` with a
+private way to report vulnerabilities (GitHub private advisories), and a rule
+that security reports never go into public issues.
+
+**G7. Distribution beyond our launcher.** Publish RomanicaClient on Modrinth (and
+optionally CurseForge) so players of other launchers can install it, and so it
+shows up in their search. Big discovery channel, free. Needs the brand rename
+(6h) and the Azure swap first.
+
+**G8. Website support for the client.** romanica.net/client exists for downloads;
+add the client's features page (Bedrock servers, Console, no ads, open source),
+a help/FAQ section, and a changelog per client release. SEO-targeted pages for
+"Bedrock servers on Java", "free AFK client", "Minecraft client no ads".
+
+**G9. Plugin roadmap for client features.** Several plans need server work that
+isn't scheduled: store catalogue over the plugin channel (6f), handover notice
+(6d), hacked-client report (6e), metrics (E19), batching block-break effects
+(6g). Collect them into a plugin-side section so they ship with the client side.
+
+**G10. Backups for new backend data.** Friends lists, cape uploads and moderation
+records become player data we must not lose: daily backups and a tested restore
+before those features launch.
