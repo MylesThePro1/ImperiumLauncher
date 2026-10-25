@@ -43,15 +43,20 @@ stubModule(path.join(JS, 'crashscreen.js'), { setDispatch(){} })
 class FakeProcessBuilder {
     constructor(_serv, _versionData, _modLoaderData, authUser){
         this.authUser = authUser
+        this.gameDir = FakeProcessBuilder.gameDir
     }
     build(){
         const child = new EventEmitter()
         child.stdout = new EventEmitter()
         child.stderr = new EventEmitter()
         FakeProcessBuilder.lastChild = child
+        FakeProcessBuilder.children.push(child)
         return child
     }
 }
+// Never exists on disk: the launch's log tail finds no game log, like a fresh instance.
+FakeProcessBuilder.gameDir = path.join(os.tmpdir(), 'romanica-ls-game')
+FakeProcessBuilder.children = []
 stubModule(path.join(JS, 'processbuilder.js'), FakeProcessBuilder)
 
 const launchservice = require('../app/main/launchservice')
@@ -100,6 +105,10 @@ const settleWithin = (p, ms) => Promise.race([
 test.afterEach(() => {
     core.refresh = async () => distro
     account.displayName = 'Marcus'
+    // Close every launched child so each launch's log tail and ready timer stop.
+    for(const child of FakeProcessBuilder.children.splice(0)){
+        child.emit('close', 0, null)
+    }
 })
 
 /* ------------------------------------------------------------------ */
