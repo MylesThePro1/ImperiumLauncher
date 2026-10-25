@@ -81,6 +81,9 @@ jobs:
           }
 
       - name: Run the launch smoke test
+        env:
+          # Test the distribution index of this exact commit, not master's.
+          IMPERIUM_SMOKE_DISTRO_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/distribution/distribution.json
         run: >
           node test/smoke/launch-smoke.cjs
           --exe "dist/win-unpacked/Romanica Launcher.exe"
@@ -89,6 +92,22 @@ jobs:
           --mesa "mesa\opengl32.dll"
           --server "$env:SERVER_ID"
           --artifacts-dir smoke-artifacts
+
+      # Evidence for every run, pass or fail: the head of the game's own log
+      # from this run. No log means the game never started; treat it as a fail.
+      - name: Show the game log
+        if: always()
+        shell: pwsh
+        run: |
+          $log = Join-Path $env:RUNNER_TEMP 'imperium-data\instances\Romanica\logs\latest.log'
+          if (Test-Path $log) {
+            Write-Output "===== latest.log (first 40 lines) ====="
+            Get-Content $log -TotalCount 40
+            Write-Output "===== latest.log (last 20 lines) ====="
+            Get-Content $log -Tail 20
+          } else {
+            Write-Output "::warning::no latest.log from this run"
+          }
 
       # A failed run prints the launcher's own output into the job log, so the
       # cause is readable without downloading the artifact.
