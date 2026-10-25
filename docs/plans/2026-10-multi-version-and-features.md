@@ -1805,7 +1805,7 @@ affect FPS (owner correction 2026-10-25).
 
 Fixes so players never have to do this by hand (milestone 0.3 "Stable"):
 
-- **W1. Crash-loop guard (launcher).** If the game exits with a crash within a
+- **W1. Crash-loop guard (launcher). Built for 0.2.8:** the next launch after an early crash skips auto-connect once (`app/main/crashguard.js`); showing the crash report and offering safe mode follow with C14/W2. If the game exits with a crash within a
   few minutes of starting, twice in a row: turn off auto-connect for the next
   launch, show the crash report (C14), and offer "Try safe mode" (W2). Stops the
   "auto-join, crash, relaunch, auto-join" loop that leaves players no way into the
@@ -1816,7 +1816,7 @@ Fixes so players never have to do this by hand (milestone 0.3 "Stable"):
   and co.), lowers render distance and effects, no auto-connect. Which mods it
   turns off gets confirmed by the crash report and W6 tests, not guessed. Offered automatically after a crash and
   chosen by default by P1/P2 on weak hardware.
-- **W3. RAM guidance (launcher).** P1's hardware-aware RAM (6c), plus a warning
+- **W3. RAM guidance (launcher). Warning built for 0.2.8** (settings Java tab); hardware-aware defaults still to do. P1's hardware-aware RAM (6c), plus a warning
   when the player sets RAM below the index's recommended value ("Romanica
   recommends 4 GB; you've set 2.5 GB").
 - **W4. Effects pack opt-in (server).** The second ~53 MB pack is cosmetic
