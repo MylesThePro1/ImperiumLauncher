@@ -1569,3 +1569,90 @@ servers; that's the server's responsibility, and the UI says so.
   party.
 - Building it in risks Romanica's approved Azure app, invites antivirus flags
   (G13) and contradicts the clean, open-source client (sections 11, 6e).
+
+## 17. Gaps, round 4: turning the plan into shipped work (review 2026-10-25)
+
+The plan now has ~100 items across 16 sections. The biggest remaining gaps are
+about execution, not features.
+
+### Execution
+
+**R1. No release roadmap.** There's an order inside each section but no overall
+milestones. Define a short list: **0.3 "Stable"** (section 8A, B7 token
+encryption, CI proof), **0.4 "Switch"** (12b day-one list, S1/S3, vanilla import,
+Quick Play), **0.5 "Romanica"** (12a Romanica-only features, store screen),
+**0.6 "Console"** (6d v1, join queue), **0.7 "Host"** (section 15 steps 1-3),
+then multi-version phases. Everything not in a milestone waits. Without this, a
+solo team spreads across 100 items and finishes none.
+
+**R2. Track it where the work happens.** The plan lives in the launcher's
+`docs/`, but most items are client, plugin, backend or website work. Turn each
+milestone into GitHub issues in the right repo (with the AGENTS.md evidence
+rules as acceptance criteria), linked from RomanicaClient#12, which AGENTS.md
+already names as the priority list.
+
+**R3. Prove the risky dependencies before building on them** (one short spike
+each, result written into this doc):
+- mineflayer and bedrock-protocol on 26.3 / current Bedrock (Console, hosting
+  tests);
+- the ViaBedrock add-on on a few more servers and Realms;
+- Xbox friends/presence/messaging with Romanica's Azure app (0c);
+- MCEF (embedded browser) on 26.3 for in-game checkout (6f);
+- e4mc's limits and terms for hosting (15).
+
+**R4. Maintenance load.** Every Minecraft release (several a year under the 26.x
+numbering) breaks mixins, the pack and every supported version. Decide the
+support policy now (G4): which versions get features, which only fixes, how long
+after a release the client follows. Each extra version multiplies this.
+
+### Hidden dependencies
+
+**R5. Discord Rich Presence uses an application ID we probably don't own.**
+`DiscordRPC.kt` has `CLIENT_ID = 875835666729152573` in untouched upstream code,
+so it's most likely AxolotlClient's Discord app (shallow history couldn't confirm).
+That's the Azure-ID problem again: the Join button and presence (section 11) would
+show their app name and depend on their app. Create a Romanica Discord
+application (free), swap the ID, and set the Romanica name and art there. Check
+the Discord developer portal to confirm whose ID it is.
+
+### Legal review, in one batch
+
+**R6. One legal pass before the public launch** instead of piecemeal: Minecraft
+EULA and usage guidelines (runtime-only changes, name and branding, G16), offline
+accounts behind the ownership gate (16), children's privacy (B9), terms of the
+Xbox services we call (Xbox APIs may come with their own developer terms beyond
+sign-in, so check them before the friends feature ships), cape providers' terms
+(14.2), PayNow's terms for in-game checkout (6f), and bot tooling on third-party
+servers (6d). Get proper advice; these aren't code questions.
+
+### Product gaps
+
+**R7. Launcher languages.** The client ships de/es/pt; the launcher has
+`en_US.toml` only. The website already serves pt-BR, de and es. Translate the
+launcher too, with the same parity test the client has.
+
+**R8. Launcher accessibility.** PRODUCT.md sets WCAG AA and reduce-motion for the
+client; the launcher has no equivalent rules. Apply the same.
+
+**R9. More free install channels.** winget and the Microsoft Store (Windows),
+Flatpak/Flathub and the AUR (Linux) are free discovery and update channels; macOS
+needs Apple notarisation (paid Apple developer account: owner decision) or every
+Mac user sees a "can't be opened" warning.
+
+**R10. Open-source contributor basics.** CONTRIBUTING exists in the client; add
+it to the launcher, plus an architecture overview, "good first issue" labels and
+a code of conduct, so outside contributors can help (the main way a solo team
+scales).
+
+### Effects on the Romanica server
+
+**R11. Growth and bots hit the server.** If the client works, more players and
+many AFK bots arrive. Plan for: player slots and server performance under more
+load (plugin profiling, 6g's server-side items), the join queue reaching the
+server's connection throttle, AFK income with many alts (section 6d economy
+check), and whether bot accounts count toward rewards like vote parties.
+
+### Order
+
+R1 and R2 first (a day of planning), then R3 spikes in parallel with milestone
+0.3, R5 (small), R6 before any public launch, the rest with their milestones.
