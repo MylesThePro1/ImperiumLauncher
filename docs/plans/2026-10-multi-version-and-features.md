@@ -298,6 +298,73 @@ ImmediatelyFast, Entity Culling, More Culling, Dynamic FPS, Better Block Entitie
 5. P2 first-launch graphics preset, then P9 settings page.
 6. P6 Nvidium, P7 Distant Horizons (opt-in extras).
 
+## 6d. Headless accounts ("Romanica Console"): AFK/console bots, local only
+
+Owner direction (2026-10-25): features like the AFK/console bot tools players
+use (OQMineBot was the owner's favourite; also AFK Console Client, StayAFK,
+Minecraft Console Client, MinecraftAFK), but **running locally** on the
+player's PC, for **Java and Bedrock**, with all of a player's accounts in one
+place. Learn what those tools do; copy no code or assets from them.
+
+### Policy first (decide before building)
+
+- **Romanica itself kicks AFK players after 10 minutes** (`AfkService.kt`,
+  `afk-kick-timeout: 600`). A bot that keeps accounts online defeats that rule
+  unless Romanica changes it. Options: (a) bots allowed only in a designated AFK
+  area, earning nothing; (b) bots identified as such (a flag from the client) and
+  excluded from economy, vote parties and leaderboards; (c) no bots on Romanica,
+  the tool is for other servers. Owner decides; the plugin enforces it.
+- **Other servers** ban bots in their rules more often than not. The tool shows
+  a clear "check this server's rules" notice and stays opt-in per server.
+- **Hard lines**, same as the no-hacked-clients rule: no anticheat evasion, no
+  auto-mining/auto-clicking for economy gain, no spam, no PvP/griefing
+  automation, no account sharing or selling. Romanica runs its own anticheat;
+  shipping evasion would be shipping bypass tools against ourselves.
+
+### Features (v1)
+
+- **Account manager**: add many Microsoft accounts (device-code sign-in with
+  Romanica's Azure app, same flow as the client), Java and Bedrock profiles per
+  account. Tokens encrypted on disk with the OS keychain (Electron
+  `safeStorage`), never sent to Romanica's servers: local only.
+- **Run headless**: connect any number of accounts to a server with no game
+  window, so it runs fine on weak PCs; start/stop each one or all at once.
+- **Console per account**: live chat, send chat and commands, health/hunger,
+  position, who is nearby.
+- **Stay connected**: auto-reconnect with backoff, reconnect on server restart,
+  scheduled join/leave times. Anti-AFK movement only where the server's rules
+  allow it (see policy).
+- **Basic survival**: auto-eat, auto-respawn, leave on low health.
+- **Alerts**: notify (desktop, optional Discord webhook the player sets up)
+  on mentions, keywords, disconnects, deaths.
+- **Logs**: per-account chat log saved locally.
+
+### Later (v2+)
+
+- Simple scripting (on-join commands, timed messages, reply rules), sandboxed.
+- Pathfinding / walk-to-coordinates.
+- Run from a home server or always-on PC with a local web dashboard (still the
+  player's own machine, no Romanica hosting).
+
+### Building blocks
+
+- The launcher is Electron/Node, so Node libraries fit directly: **mineflayer**
+  (headless Java client with plugins for pathfinding and auto-eat) and
+  **bedrock-protocol** (headless Bedrock client), both MIT-licensed PrismarineJS
+  projects, plus **prismarine-auth** for Microsoft sign-in. Check each supports
+  Minecraft 26.3 and current Bedrock before committing; they often lag new
+  releases.
+- Alternative for Bedrock: a Java headless client through **ViaBedrock /
+  ViaProxy** (GPL-3.0; separate process, not linked into our code).
+- Home: a "Console" tab in the launcher, not a separate app.
+
+### Evidence
+
+Headless clients can be tested in CI against a throwaway local Paper server
+(Java) and a local Bedrock Dedicated Server: join, chat round-trip, reconnect
+after a server restart, clean disconnect. Microsoft sign-in and real servers:
+"Not verified" until run on the owner's PC.
+
 ## 7. Suggested order
 
 1. Launcher stable: Fabric manifest fix, release, real launch on the owner's PC.
@@ -306,6 +373,7 @@ ImmediatelyFast, Entity Culling, More Culling, Dynamic FPS, Better Block Entitie
 4. Instance model with the managed/player-owned split and backups (0a).
 5. Import existing installs (0b); any vanilla/Fabric version launches.
 5a. Performance items P1-P9 (6c), in their own order, alongside 4-5.
+5b. Romanica Console (6d): owner decides the Romanica bot policy first; v1 after the instance model.
 6. RomanicaClient builds for phase A versions + performance preset.
 7. Host-a-world (Java first, then Geyser).
 8. Replay clips.
