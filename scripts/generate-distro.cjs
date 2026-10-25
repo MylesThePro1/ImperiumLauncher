@@ -309,7 +309,7 @@ async function imperiumClientModule(localJarPath, versionOverride) {
   }
   return {
     id: `net.imperiummc:imperium-client:${VERSION}`,
-    name: 'Imperium Client',
+    name: 'Romanica Client',
     type: 'FabricMod',
     artifact: artifact(releaseUrl, hash, size, sha256),
   };
