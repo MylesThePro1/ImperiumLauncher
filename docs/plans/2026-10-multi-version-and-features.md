@@ -492,6 +492,23 @@ on only when connected to a Romanica address. Extend it:
   bugs to fix. Test the client with each popular hacked client installed.
 - **Theming**: register a Romanica theme in their GUI systems where they offer a
   theme API, so their menus match ours. Optional, off by default.
+- **Very wide coverage** (owner direction): support as many hacked clients as
+  possible through a **data-driven registry**, not hard-coded checks. Each entry:
+  mod id / jar signature, Minecraft versions, open or closed source, and what
+  RomanicaClient can do with it: *detect* (all), *toggle modules* (only where the
+  client exposes a way), *theme* (only where it has a theme API).
+  - Tier A, open source with module/theme APIs (Meteor, Wurst, LiquidBounce and
+    similar Fabric clients): detect + toggle + theme.
+  - Tier B, open source without usable APIs: detect + toggle by config file where
+    possible.
+  - Tier C, closed or paid clients: detect only. Romanica's server-side anticheat
+    is the only real defence for these.
+  - Legacy versions (1.8.9/1.12.2 Forge clients) join the registry with the
+    multi-version work (phase C).
+  - The registry is a JSON file in a Romanica GitHub repo, fetched the same way
+    as the launcher's distribution index (free hosting), so new clients are added
+    without a client release. Licence and API status verified per client when it's
+    added; nothing here is assumed.
 - **Shared tools**: account manager, waypoints, HUD layout, profiles per server
   (e.g. a "2b2t" profile and a "Romanica" profile switched automatically by
   server address).
@@ -512,6 +529,34 @@ CI gametest with Meteor installed (once the gametest job boots): join a local
 server whose address is on the Romanica allowlist, assert modules are off;
 leave, assert they're restored. Server-side: the plugin's anticheat tests stay
 the real proof.
+
+## 6f. In-game store and checkout in RomanicaClient
+
+Owner direction (2026-10-25): what the third-party
+[paynow-gui](https://hangar.papermc.io/Kyllian/paynow-gui) plugin does on Lunar
+Client only (an in-game store menu with in-game checkout), but in RomanicaClient,
+so players can buy from the Romanica store without leaving the game.
+
+- **Fits the business model** (PRODUCT.md): the player opens it (`/store`, a menu
+  button). Never a pop-up, banner or prompt that interrupts play.
+- **Card details never touch Romanica code.** Payment happens only on PayNow's own
+  hosted checkout page. Keeps Romanica out of card-data rules and keeps trust.
+- **Store screen**: the plugin sends the catalogue (products, prices, images, the
+  player's rank) over the existing Romanica plugin channel; RomanicaClient renders
+  it as a native, themed store screen. Vanilla/other clients keep a chest-GUI
+  version from the plugin, with a checkout link.
+- **Checkout**, in order of preference:
+  1. An in-game web view of PayNow's checkout. Needs an embedded-browser mod
+     (MCEF, Chromium-based, large); download it only the first time a player
+     checks out, never bundled by default. Check its licence and 26.3 support.
+  2. A QR code on screen to pay on a phone.
+  3. The system browser (today's behaviour).
+- **Fulfilment must work first.** The 2026-10-25 review found the production
+  PayNow webhook subscription lists only the three subscription events, not
+  OnOrderCompleted / OnRefund / OnChargeback, so one-off purchases may not be
+  delivered. Fix that in the PayNow dashboard before building any of this.
+- Evidence: a PayNow sandbox order completed from the in-game screen and delivered
+  in game, on the owner's PC.
 
 ## 7. Suggested order
 
