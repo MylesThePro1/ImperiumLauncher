@@ -246,38 +246,57 @@ Compatibility with other cape systems:
   simple, documented public endpoint (`/capes/<uuid>.png`) and offer it to
   open-source cape mods as a provider. Closed clients won't show ours.
 
-## 6c. Performance on weak and strong PCs (owner question: Folia-style threading)
+## 6c. Performance on weak and strong PCs
 
-Folia (regionised multithreaded ticking) is server software and has no client
-equivalent. Singleplayer runs an integrated server that ticks on one main thread
-like vanilla; making that Folia-style isn't feasible as a mod (Folia breaks most
-mods and vanilla redstone/behaviour assumptions). What already runs in parallel:
-chunk meshing on worker threads (much better with Sodium, in the pack), chunk
-generation/IO on worker threads in the integrated server, networking, sound.
+Owner direction (2026-10-25): plan the multithreading work and every other
+performance item below.
 
-The levers that work, in order of value:
+### What already runs in parallel
 
-1. **Hardware-aware launcher defaults.** Today every PC gets the distro's
-   recommended 4 GB and the same G1 flags (`configmanager.js`). Instead, pick at
-   first launch from total RAM and CPU cores, still overridable in settings:
-   - RAM: about 2 GB on 4 GB machines (4 GB there makes Windows swap), 3-4 GB on
-     8 GB, 4-6 GB on 16 GB+. More than ~6-8 GB doesn't help this pack.
-   - GC: keep G1 by default; try generational ZGC on 16 GB+/6+ core PCs for fewer
-     GC stutters.
-2. **First-launch graphics preset** from the detected GPU: integrated graphics get
-   lower render distance and shaders off; strong GPUs get more. Iris shaders stay
-   opt-in.
-3. **Parallel chunk mods for singleplayer and hosting**: C2ME (parallel chunk
-   generation/IO/lighting) and ScalableLux (parallel lighting) are the closest
-   thing to Folia's gains on the client side; they matter most for singleplayer
-   and the host-a-world feature (6), less on multiplayer. Add after compatibility
-   testing with the current pack.
-4. For host-a-world, plain Paper, not Folia: Folia needs many cores and breaks
-   most plugins, and friend groups are small.
+Folia (regionised multithreaded server ticking) has no client equivalent.
+Game logic and frame submission stay on one main thread, and no mod can split
+that Folia-style. Already parallel: chunk mesh building on worker threads (much
+faster with Sodium), integrated-server chunk generation and saving, networking,
+sound. Already in the pack: Sodium, Lithium, FerriteCore, ModernFix,
+ImmediatelyFast, Entity Culling, More Culling, Dynamic FPS, Better Block Entities.
 
-All of this is performance work, so per AGENTS.md: CI FPS numbers mean nothing
-(software rendering). Each change ships with a test plan (scene, settings, before
-vs after) run on the owner's PC, ideally on one weak and one strong machine.
+### Planned items
+
+| # | Item | Gains | Default | Notes |
+|---|---|---|---|---|
+| P1 | Hardware-aware RAM + GC defaults (launcher) | Weak PCs stop swapping; fewer GC stutters on strong PCs | On | First launch reads total RAM + CPU cores. RAM: ~2 GB on 4 GB machines, 3-4 GB on 8 GB, 4-6 GB on 16 GB+ (more than ~6-8 GB doesn't help this pack). GC: G1 default, generational ZGC on 16 GB+/6+ cores. Player override in settings stays. Today: fixed 4 GB + one G1 flag set (`configmanager.js`) |
+| P2 | First-launch graphics preset (launcher writes `options.txt` once) | Playable first session on integrated graphics | On, first launch only | Detect GPU class; iGPU = lower render distance, fancy off, shaders off. Never overwrite an existing `options.txt` (0a: player-owned file) |
+| P3 | C2ME (parallel chunk generation/loading/saving) | Faster world loading, singleplayer and host-a-world | On | Biggest win offline/hosting, small on multiplayer. Check compatibility with ModernFix, Lithium, ViaFabricPlus |
+| P4 | ScalableLux (parallel lighting) | Smoother chunk loading, including multiplayer | On | Lighting engine replacement: check against Iris shaders and BBE |
+| P5 | Particle culling | Fewer FPS drops in explosions/enchant effects | On | Directly relevant to OP prison (Nuke, VeinMiner, crates) |
+| P6 | Nvidium (Sodium add-on, mesh shaders) | Large FPS gain on supported NVIDIA GPUs | On only when detected NVIDIA GPU supports it | Often trails Sodium updates; ship only when a build matches the pack's Sodium |
+| P7 | Distant Horizons (low-detail far terrain) | Very long view distance on strong PCs | Off, opt-in | Heavy on weak PCs and on disk; offer as a toggle in the launcher's performance settings |
+| P8 | Profile RomanicaClient's own HUD/menus on a weak PC | Removes the client's own overhead | n/a | HudFrameCache already exists; profile with a sampling profiler (e.g. spark) in a busy mine with the default HUD, fix the top offenders |
+| P9 | Performance settings page in the launcher | Players can see and change P1/P2/P6/P7 | n/a | One screen: RAM, GC, preset, Nvidium, Distant Horizons, plus "reset to recommended" |
+
+### Rules for every item
+
+- Availability first: confirm a build exists for the pack's exact Minecraft and
+  Sodium versions before adding a mod (not checked yet for 26.3).
+- Mods go in from Modrinth with pinned versions and sha256, like the rest of the
+  pack; no closed or re-hosted jars.
+- Each item lands alone (one change per release where practical), so a
+  regression points at one cause.
+- **Evidence:** CI FPS is meaningless (software rendering). Each change ships with
+  a test plan: fixed scene (spawn, a busy mine during Nuke procs, a fresh
+  singleplayer world fly-through), fixed settings, before vs after (average FPS,
+  1% lows, chunk-load time, RAM). Run on the owner's PC, ideally on one weak
+  machine (integrated graphics, 8 GB) and one strong one.
+- Anything that fails on the weak PC is either off by default or dropped.
+
+### Order
+
+1. P1 hardware-aware RAM/GC (largest gain for weak PCs, launcher-only change).
+2. P3 C2ME + P4 ScalableLux (small, contained; test together, ship separately).
+3. P5 particle culling.
+4. P8 client HUD profiling.
+5. P2 first-launch graphics preset, then P9 settings page.
+6. P6 Nvidium, P7 Distant Horizons (opt-in extras).
 
 ## 7. Suggested order
 
@@ -286,6 +305,7 @@ vs after) run on the owner's PC, ideally on one weak and one strong machine.
 3. Xbox friends spike (one real sign-in, no UI).
 4. Instance model with the managed/player-owned split and backups (0a).
 5. Import existing installs (0b); any vanilla/Fabric version launches.
+5a. Performance items P1-P9 (6c), in their own order, alongside 4-5.
 6. RomanicaClient builds for phase A versions + performance preset.
 7. Host-a-world (Java first, then Geyser).
 8. Replay clips.
