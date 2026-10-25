@@ -1656,3 +1656,131 @@ check), and whether bot accounts count toward rewards like vote parties.
 
 R1 and R2 first (a day of planning), then R3 spikes in parallel with milestone
 0.3, R5 (small), R6 before any public launch, the rest with their milestones.
+
+## 18. Client + launcher + server: making Romanica better to play
+
+Owner direction (2026-10-25): plan how RomanicaClient and the launcher work with
+the Romanica server so they genuinely improve the experience and gameplay.
+Extends 12a. Grounded in what the plugin already has (checked 2026-10-25):
+ranks, prestige, mines, custom enchants, crates, auction house, marketplace,
+trades, legions, PvP mine, bosses, KOTH, colosseum, rifts, dungeons, battle pass,
+daily quests, challenges, lottery, vote parties, achievements, story cutscenes
+and NPCs, onboarding, bug reports, AFK income, and the existing client
+integration service (`integration/ImperiumClient*`).
+
+### Principles
+
+1. **The server decides, the client presents.** Every action goes back to the
+   server as a normal command or a validated message; the client never decides
+   outcomes (prizes, prices, damage). Open-source client = assume it's modified.
+2. **No client-to-win.** Anything that matters for progress or PvP stays
+   available to vanilla Java and Bedrock (Geyser) players through commands, chest
+   GUIs and Bedrock forms. The client makes it faster, clearer and nicer, not
+   stronger. Information shown in a client HUD is also reachable in-game (a
+   command, scoreboard or GUI).
+3. **Graceful without the client.** Every feature has a working non-client path;
+   the client is an upgrade, never a requirement.
+4. **Opt-in and tidy.** Every HUD and notification is a module the player can
+   move, resize or turn off (HUD editor), nothing pops up uninvited (PRODUCT.md).
+
+### A. Native screens instead of chest GUIs
+
+The biggest everyday win: chest GUIs are slow to read and use. When the client
+is present, the server sends data and the client shows a proper screen; the chest
+GUI stays for everyone else.
+
+| Screen | Gains |
+|---|---|
+| Auction house / marketplace | Search, filters, sort, price history chart, "notify me when sold" |
+| Enchant shop / pickaxe upgrades | Previews of what each level does, cost to max, compare current vs next |
+| Crates | Opening animation, odds shown (the site already publishes exact odds) |
+| Rank up / prestige | Progress, next unlock, cost, what prestige resets and keeps |
+| Battle pass, daily quests, challenges | One tracker screen with progress and rewards |
+| Legion management | Members, roles, territory, wars, bank, in one place |
+| Trades | Clear two-sided view with confirm and change warnings |
+| Dungeons / colosseum / rifts | Queue, party, rewards, rules |
+
+### B. In-game information (HUD modules)
+
+Mine (current mine, reset countdown, % mined, next rank cost), currencies and
+active boosters, sell value of the backpack, cooldowns (exists), legion (exists),
+quest/battle-pass tracker, event countdowns (KOTH, bosses, colosseum, lottery
+draw, vote party), boss health with phase hints, combat-tag timer in PvP areas,
+KOTH capture progress, enchant proc feed (compact, off by default).
+
+### C. Feel and performance
+
+- **Enchant and block-break effects rendered by the client** from a compact
+  server event (which enchant, where, how big) instead of thousands of particle
+  and sound packets: smoother mass breaking (6g O2/O5) and less bandwidth. Players
+  without the client keep the vanilla particles.
+- **Particle budget**: the client tells the server its effects setting; the server
+  sends fewer effects to players who turned them down.
+- **Smooth mine resets**: client-side fade/animation while the server refills.
+- **Server resource pack pre-cached by the launcher** (from romanica-resourcepack
+  releases) so joining doesn't stall on the pack download.
+
+### D. Finding your way
+
+- **Server waypoints**: warps, mines, NPCs, quest targets and event locations
+  pushed to the client's waypoints and minimap (toggleable). The website's map
+  data (`/api/landmarks`, gazetteer) is the same source.
+- **Story**: cutscenes and NPC dialogue rendered by the client (smoother than
+  server-driven teleports, skippable after the first view); quest markers on
+  the minimap.
+- **Onboarding**: the first-hour guidance (Cassius at spawn) shown as a clear
+  step tracker for new players.
+
+### E. Social and community
+
+- Legion chat tab, legion members' HUD and minimap markers for allies.
+- Discord presence shows rank, mine or event, with Join (section 11, R5 app ID).
+- Proximity voice chat (Simple Voice Chat, section 12) in mines, legions,
+  colosseum.
+- Romanica's own in-server friends (the plugin's friend service) alongside Xbox
+  friends in the client's friends screen.
+
+### F. The launcher as the front door
+
+- **Live server card**: players online, events running now, latest news (the
+  launcher already reads `news.rss`), one-click **Play Romanica** (Quick Play).
+- **Daily vote**: a "Vote today" card linking the server-list vote pages, with the
+  in-game reward explained; shown once a day, dismissible, never a pop-up.
+  Votes are what rank the server on lists (the SEO goal), so this directly helps
+  growth.
+- **Account linking**: link the website dashboard and Discord from the launcher
+  using the Microsoft sign-in, no codes to type.
+- **Store** (6f) and **support tickets** (the site's ticket system) one click away.
+
+### G. Fairness and safety
+
+- Romanica mode (6e): hacked-client modules off on Romanica; clean-client
+  registration as context for the anticheat, never as trust.
+- **Bug reports from in-game** go straight into the plugin's bug report service /
+  site tickets with the redacted log attached.
+- **Staff tools** (only for players with staff permissions, verified by the
+  server): anticheat alert feed, report queue, player info panel, vanish
+  indicator. Big moderation speed-up; nothing visible to non-staff.
+
+### H. The protocol behind it
+
+- Rename `imperiumclient:*` to `romanica:*` (6h), accepting both for one release.
+- **Capability handshake**: the client announces which features it supports and
+  its version; the server only sends what that client can show. Old clients keep
+  working; new features roll out safely.
+- Documented message formats, versioned, size-limited and rate-limited on the
+  server.
+- Channels only registered on Romanica addresses (section 11), so the client
+  still looks like plain Fabric elsewhere.
+- Tests on both sides: the client's protocol gametests (`ImperiumProtocolGameTest`
+  exists) and plugin unit tests for each message, plus one end-to-end CI run
+  (client gametest joining a test server running the plugin) once CI boots (A1).
+
+### Order (fits milestone 0.5 "Romanica", R1)
+
+1. H protocol: rename + capability handshake (everything else builds on it).
+2. B mine HUD, event countdowns, quest tracker; D server waypoints.
+3. A auction house and enchant shop screens (most-used chest GUIs first).
+4. F launcher server card, Play Romanica, daily vote card.
+5. C client-rendered enchant effects (with 6g profiling).
+6. A remaining screens, D story/cutscenes, E social, G staff tools.
