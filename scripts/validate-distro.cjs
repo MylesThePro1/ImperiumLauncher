@@ -305,9 +305,17 @@ async function readRemoteEntry(url, entry) {
   return inflateEntry(res.body.subarray(start, start + entry.compressedSize), entry.method);
 }
 
-/** Parse a fabric.mod.json buffer; throws on invalid JSON. */
+/** Parse a fabric.mod.json buffer; throws on invalid JSON.
+ *  Lenient like the game's Gson: a few published mods (ETF/EMF) embed raw
+ *  control characters inside string literals — invalid per RFC 8259 but
+ *  parsed fine by the loader. Strip raw control chars before JSON.parse so
+ *  the validator checks what players actually run, not a stricter dialect. */
 function parseMeta(buf) {
-  return JSON.parse(buf.toString('utf8'));
+  return JSON.parse(
+    buf
+      .toString('utf8')
+      .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, (ch) => (ch === '\t' ? '\\t' : ' '))
+  );
 }
 
 // ---------------------------------------------------------------------------
