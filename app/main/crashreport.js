@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * crashreport.js — uploads a game crash report to the ImperiumMC endpoint.
  *
@@ -76,7 +77,7 @@ function truncateToBytes(value, maxBytes){
  * logTail, crashReport?} as parsed by the crash screen.
  * @param {Object} meta {launcher, launcherVersion, platform} supplied by
  * the main process, never by the renderer.
- * @returns {{ok: true, body: Object}} | {{ok: false, error: string}}
+ * @returns {{ok: boolean, body?: Object, error?: string}}
  */
 function buildBody(fields, meta){
     if(fields == null || typeof fields !== 'object'){
@@ -138,8 +139,7 @@ function buildBody(fields, meta){
  *
  * @param {number} status The HTTP status code.
  * @param {Object|null} json The parsed response body, when it parsed.
- * @returns {{ok: true, url: string, id: ?string, truncated: boolean}} |
- * {{ok: false, error: 'rate_limited'|'too_large'|'bad_response'|'server'}}
+ * @returns {{ok: boolean, url?: string, id?: ?string, truncated?: boolean, error?: string}}
  */
 function mapResponse(status, json){
     if(status === 429){

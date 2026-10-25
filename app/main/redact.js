@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * redact.js — crash-report scrubber, launcher half.
  *

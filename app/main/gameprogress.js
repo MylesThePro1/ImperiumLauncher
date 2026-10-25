@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * gameprogress.js - turns the game's own log into launch progress.
  *
@@ -55,7 +56,7 @@ function readHead(file, size){
         const fd = fs.openSync(file, 'r')
         try {
             const buf = Buffer.alloc(Math.min(HEAD_BYTES, size))
-            const { bytesRead } = fs.readSync(fd, buf, 0, buf.length, 0)
+            const bytesRead = fs.readSync(fd, buf, 0, buf.length, 0)
             return buf.subarray(0, bytesRead)
         } finally {
             fs.closeSync(fd)

@@ -1,3 +1,4 @@
+// @ts-check
 // Requirements
 const { app, BrowserWindow, ipcMain, Menu, shell } = require('electron')
 const autoUpdater                       = require('electron-updater').autoUpdater
@@ -448,7 +449,10 @@ function createMenu() {
         }
 
         // Bundle submenus into a single template and build a menu object with it
-        let menuTemplate = [applicationSubMenu, editSubMenu]
+        // Electron's typings reject the macOS `selector` role in inferred literals;
+        // the template is a constant — widen rather than fight the union.
+        /** @type {any} */
+        const menuTemplate = [applicationSubMenu, editSubMenu]
         let menuObject = Menu.buildFromTemplate(menuTemplate)
 
         // Assign the application menu

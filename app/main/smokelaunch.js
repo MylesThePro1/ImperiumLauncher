@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * smokelaunch.js — headless launch mode for the CI smoke test (issue #5).
  *
