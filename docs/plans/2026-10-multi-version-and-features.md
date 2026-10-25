@@ -683,3 +683,70 @@ convert (6g).
 7. Host-a-world (Java first, then Geyser).
 8. Replay clips.
 9. Phase B loaders/versions, then phase C.
+
+## 8. Gaps: what's still missing (review 2026-10-25)
+
+### A. Unfinished now (blocks everything else)
+
+1. **No proof the game actually runs from CI.** The launcher smoke test starts the
+   game but no `latest.log` ever appears; the client gametest job never boots
+   (GLX visual error). Nearly every "evidence" rule in AGENTS.md depends on one of
+   these working. Fix both before building features on top.
+2. Launcher 0.2.8: waiting on a real launch on the owner's PC (`latest.log` head).
+3. Client Azure ID swap: on a branch, not merged or released.
+4. PayNow webhook missing OnOrderCompleted / OnRefund / OnChargeback (dashboard).
+5. Production `afk.yml`: set `afk-kick-timeout: 0` and restart; plugin default fix
+   on a branch.
+6. Client brand still "ImperiumClient"; `imperiumclient:*` channel names (6h).
+
+### B. Security and privacy (not planned anywhere yet)
+
+7. **Sign-in tokens stored in plain text.** RomanicaClient writes Microsoft refresh
+   tokens to `accounts.json` (and keeps `accounts.json.old`) unencrypted. Token
+   stealers target exactly these files. Encrypt with the OS keychain (Windows
+   DPAPI, macOS Keychain, Linux secret service), migrate existing files, delete
+   the `.old` copy. Same standard as the Console plan (6d).
+8. **Windows code signing** for the launcher installer and auto-updates. Unsigned,
+   every new player sees a SmartScreen "unknown publisher" warning (an adoption
+   killer) and updates rely on HTTPS plus the update file's hash alone.
+   Already an open owner item; needs a certificate (costs money: owner decision).
+9. **Privacy policy and minors.** Friends, chat, cape uploads and the store all
+   handle player data, and many players are children. Before those ship: privacy
+   page covering the client and launcher, block/report/mute in chat and friends,
+   moderation for uploads, and a check of children's-privacy rules (e.g. COPPA in
+   the US, GDPR-K in the EU) for anything storing data on api.romanica.net.
+
+### C. Launcher features not yet planned
+
+10. **Release channels**: a beta channel for testers alongside stable, and a way
+    to roll back a bad update.
+11. **Mod, resource-pack and shader browser** (Modrinth) so players can add their
+    own content to an instance; 0b covers importing, not browsing.
+12. **Offline launch**: play singleplayer when the internet or our index is down
+    (last verified files, no re-download).
+13. **macOS and Linux**: installers inherited from Helios, never tested.
+14. **Launcher crash reports** players can send in one click (redacted like the
+    existing `redact.js`), instead of digging through log folders.
+
+### D. Client features not yet planned
+
+15. **Controller support** (listed in the Bedrock comparison, never planned).
+16. **Settings and profile export/import** between PCs (local file, zero hosting
+    cost).
+17. **Translations for new features**: the client has de/es/pt; every new screen
+    in this plan needs strings in all of them (the locale test enforces parity).
+18. **First-run onboarding**: a short "here's what's different" screen so players
+    find Romanica mode, Console, Bedrock servers and the store.
+
+### E. Measuring whether it works
+
+19. **Success metrics**, privacy-friendly: how many RomanicaClient users join
+    Romanica (the server already sees the client channel), how many stay a week,
+    crash rate per release. The client exists to grow the server; without these
+    numbers there's no way to tell whether it does.
+
+### Suggested order for this section
+
+A1, then A2-A6, then B7 (small and urgent), then B8/B9 before friends/chat/store
+ship, then C and D alongside the phases they belong to; E as soon as the client
+is released widely.
