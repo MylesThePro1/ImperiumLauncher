@@ -351,6 +351,27 @@ async function checkArtifact(entry, fullMode) {
   }
 
   // 1. Reachability + size probe (ranged GET preferred over HEAD; see header).
+  //    Vendored-artifact chicken-and-egg: a raw.githubusercontent URL pointing at
+  //    this same repo's /master/ path 404s on a PR branch until the file merges.
+  //    When the file exists in THIS checkout, validate the local bytes instead —
+  //    honest pre-merge, identical post-merge (raw serves the same bytes).
+  const SELF_RAW = /^https:\/\/raw\.githubusercontent\.com\/Romanica-MC\/RomanicaLauncher\/master\/(.+)$/.exec(url || '');
+  const localFile = SELF_RAW ? require('path').join(__dirname, '..', SELF_RAW[1]) : null;
+  if (localFile && fs.existsSync(localFile)) {
+    const localBuf = fs.readFileSync(localFile);
+    if (localBuf.length !== art.size) {
+      fail(path, 'size', String(art.size), `local ${localBuf.length}`, url);
+    }
+    const localMd5 = crypto.createHash('md5').update(localBuf).digest('hex');
+    if (localMd5 !== art.MD5.toLowerCase()) {
+      fail(path, 'md5', art.MD5, `local ${localMd5}`, url);
+    }
+    if (art.sha256) {
+      const localSha = crypto.createHash('sha256').update(localBuf).digest('hex');
+      if (localSha !== art.sha256.toLowerCase()) fail(path, 'sha256', art.sha256, `local ${localSha}`, url);
+    }
+    return; // local bytes verified — the remote will serve these exact bytes post-merge
+  }
   let probe;
   try {
     probe = await probeArtifact(url);
