@@ -183,6 +183,20 @@ Gaps worth planning, highest value first:
   served by the server through Geyser). No code injection: breaks Microsoft's
   terms and every Bedrock update.
 
+## 6a. Joining Bedrock servers from RomanicaClient (ViaBedrock)
+
+- ViaFabricPlus is in the pack since PR #24; it carries ViaBedrock, which lets a
+  Java client join Bedrock servers (the opposite direction from Geyser, which
+  already lets Bedrock players join Romanica).
+- **Owner-tested 2026-10-25: joining CubeCraft's Bedrock server worked.** One
+  server, one session; other servers, Realms and friends' worlds not yet tried.
+- Ship it labelled experimental until it has held up on a few more servers.
+- GPL-3.0: keep ViaFabricPlus/ViaBedrock as separate jars in the pack, never
+  copied into RomanicaClient (LGPL). Fix bugs upstream; pin and vendor the jar
+  rather than forking.
+- A "launch Bedrock" button (Windows `minecraft://` link) stays a later, small
+  convenience; it adds no new capability.
+
 ## 7. Suggested order
 
 1. Launcher stable: Fabric manifest fix, release, real launch on the owner's PC.
