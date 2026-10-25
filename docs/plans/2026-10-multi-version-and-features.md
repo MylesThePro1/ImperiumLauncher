@@ -1173,6 +1173,56 @@ notifications, auto-respawn and HUD tools. Most exist or are planned above
 information or automates play stays out of RomanicaClient (6e); players who want
 those bring their own hacked client.
 
+### 12a. The Cosmic model: features built for our own server
+
+Owner note (2026-10-25): Cosmic (CosmicPvP / Cosmic Prisons) is the closest
+match to Romanica: a big prison/factions network with its own client. Its
+client's reported features (community posts, not official docs): item skins,
+armour glint, custom crate visuals, emotes, custom mob textures, and registering
+with the server as a clean client. The lesson is the pattern: **features only our
+server can offer, because client and server are built together.** RomanicaClient
+already does this (legion, boosts and cooldowns HUDs over `imperiumclient:*`
+channels, server-gated modules). Candidates, all driven by the plugin over the
+Romanica channel and only active on Romanica:
+
+| Feature | Romanica hook | Pri |
+|---|---|---|
+| Mine HUD: current mine, reset countdown, % mined, next rank cost | MineManager / RankService | H |
+| Enchant tooltips: what each custom enchant does, level, proc chance | EnchantRegistry | H |
+| Pickaxe skin preview and item-skin rendering (server-defined skins, our own art) | PickaxeSkinService | H |
+| Crate opening animation in the client instead of a chest GUI (server still decides the prize) | crate services | M |
+| Event alerts with countdown: KOTH, bosses, colosseum, vote party, lottery draw | Koth/Boss/Colosseum/Lottery services | H |
+| Prestige and battle-pass progress HUD | PrestigeManager, BattlePassService | M |
+| Backpack/sell summary HUD (what you'd earn selling now, boosters active) | economy services | M |
+| Legion war map overlays (territory, outposts) on the minimap | LegionManager, territory/outpost | M |
+| Clean-client registration: the client tells Romanica it's unmodified-official, server treats it as context only (6e) | enforcement layer | M |
+
+Rules: the server stays authoritative (the client only displays what the server
+sends); every feature also degrades sensibly for players without the client (the
+chest-GUI and chat versions keep working); art is Romanica's own (AGENTS.md: no
+copying other clients' assets).
+
+### 12b. What players switching from big clients expect on day one
+
+Owner note: features from Lunar, Badlion, Feather/Dawn and Alpine are what get
+people to switch. A switcher checks for these in the first five minutes; missing
+any of them reads as "worse than what I had":
+
+- FPS at least as good as their old client (performance stack + P1 defaults).
+- Their HUD layout back (import, section 10) or a fast HUD editor (exists).
+- Keystrokes, CPS, armour, potions, coordinates, FPS/ping (exist).
+- Zoom, freelook, toggle sprint (exist).
+- Custom crosshair and block outline (crosshair exists; outline in section 12).
+- Emotes and cosmetics they can see on friends (emotes exist; capes dropped, so
+  official capes only: say so clearly on the features page).
+- Friends online and join (Xbox friends + Discord join, section 11).
+- Replay/clips (planned): the biggest Lunar draw after FPS.
+- Works on the servers they play (Hypixel and co.): standard Fabric identity,
+  allowed-mods check (G3), server API plugin (section 12).
+
+Ship order should make this list complete before advertising the client to
+players of other clients.
+
 ### Suggested order
 
 1. H items that are small and visible: block outline, totem/armour counters,
@@ -1180,4 +1230,6 @@ those bring their own hacked client.
 2. Server API plugin for other servers (also fixes G3).
 3. Voice chat support.
 4. Launcher: log viewer + crash analysis, modpack export.
-5. M items as the phases they belong to come up; L items only on player demand.
+5. Romanica-only H items from 12a (mine HUD, enchant tooltips, event alerts,
+   pickaxe skins) alongside the day-one list (12b).
+6. M items as the phases they belong to come up; L items only on player demand.
