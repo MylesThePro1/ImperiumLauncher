@@ -350,7 +350,34 @@ place. Learn what those tools do; copy no code or assets from them.
 an incentive to use RomanicaClient, and RomanicaClient is how players find the
 Romanica server. No paid tier, no hosted bots, no account data on our servers.
 
-### Hop in / hop out (session handover)
+**Zero running cost to Romanica is a hard requirement.** Every part runs on the
+player's PC. Nothing in this section may need a Romanica server, relay or
+hosted service; if a feature would, it's out.
+
+**Player-supplied proxy/VPN**: each account can optionally connect through a
+SOCKS5/HTTP proxy the player provides (or just their own VPN). Romanica provides
+none. Some servers limit accounts per IP or ban proxies/VPNs; that's the
+player's call against that server's rules, shown in the same "check this
+server's rules" notice.
+
+### Play as this account (v1, with rejoin)
+
+The simple version ships first: **"Play"** on a running account stops its
+headless bot, opens RomanicaClient signed in as that account and joins the same
+server (a normal rejoin). Closing the game restarts the bot. No proxy, no state
+caching, works on every server, Java and Bedrock (via the client's existing
+Bedrock support).
+
+### Low resources when minimised (client)
+
+Dynamic FPS is already in the pack. Tune its defaults for RomanicaClient: near
+0 FPS when minimised, a few FPS when unfocused, sound muted or lowered, and stop
+non-essential client work (HUD redraws, minimap updates, particles) while
+hidden. The game still has to process the server's packets, so it can't be
+literally zero, but it should idle near a background app. Evidence: CPU/GPU
+usage minimised vs focused, measured on the owner's PC.
+
+### Hop in / hop out without a rejoin (later: session handover)
 
 Owner idea: an account runs in the background on few resources; the player can
 open it and play normally within seconds, **without the server seeing a
