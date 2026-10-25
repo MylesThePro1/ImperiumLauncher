@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * launchercore.js — main-process home of the launcher's core state.
  *

@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * launchservice.js — the launch pipeline, main-process side.
  *
@@ -43,7 +44,7 @@ let hasRPC = false
 // guard against a double click or an overlapping Retry All.
 let launching = false
 
-let emit = () => {}
+let emit = (_event) => {}
 let core = null
 
 /**
@@ -439,7 +440,7 @@ async function runLaunch(login){
         serv.rawServer.id
     )
 
-    const modLoaderData = await distributionIndexProcessor.loadModLoaderVersionJson(serv)
+    const modLoaderData = await distributionIndexProcessor.loadModLoaderVersionJson()
     const versionData = await mojangIndexProcessor.getVersionJson()
 
     if(login){

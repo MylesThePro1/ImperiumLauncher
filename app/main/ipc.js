@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * ipc.js — the validated bridge between the sandboxed renderer and the
  * main process.
@@ -119,7 +120,7 @@ function ownedRoots(){
  * Resolve a server from the loaded distribution by id.
  *
  * @param {string} serverId The server id sent by the renderer.
- * @returns {Object|null} The HeliosServer, or null when unknown.
+ * @returns {Promise<Object|null>} The HeliosServer, or null when unknown.
  */
 async function serverById(serverId){
     if(!isNonEmptyString(serverId)){
@@ -224,7 +225,7 @@ let getWindow = () => null
  * @param {function} winProvider Returns the launcher BrowserWindow.
  */
 exports.register = function(winProvider){
-    getWindow = winProvider
+    getWindow = /** @type {() => any} */ (winProvider)
 
     /* bootstrap (synchronous, one round trip at preload time) */
     ipcMain.on(BRIDGE.BOOTSTRAP, (event) => {

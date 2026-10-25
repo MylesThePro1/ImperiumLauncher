@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * userdatamigration.js — one-time carry-over from the Imperium Launcher
  * userData directory to the rebranded Romanica Launcher one.
@@ -43,9 +44,9 @@ const CARRY_OVER_FILES = [
 /**
  * Perform the migration against injectable primitives.
  *
- * @param {Object} options
- * @param {string} options.appData the OS app-data root (app.getPath('appData'))
- * @param {string} options.userData the current userData dir (app.getPath('userData'))
+ * @param {Object} [options]
+ * @param {string} [options.appData] the OS app-data root (app.getPath('appData'))
+ * @param {string} [options.userData] the current userData dir (app.getPath('userData'))
  * @param {Function} [options.existsSync] defaults to fs.existsSync
  * @param {Function} [options.copyFileSync] defaults to fs.copyFileSync
  * @param {Function} [options.mkdirSync] defaults to fs.mkdirSync
