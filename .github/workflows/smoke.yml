@@ -90,6 +90,17 @@ jobs:
           --server "$env:SERVER_ID"
           --artifacts-dir smoke-artifacts
 
+      # A failed run prints the launcher's own output into the job log, so the
+      # cause is readable without downloading the artifact.
+      - name: Show the launcher log on failure
+        if: failure()
+        shell: pwsh
+        run: |
+          Get-ChildItem smoke-artifacts -Filter *.log -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Output "===== $($_.Name) (last 200 lines) ====="
+            Get-Content $_.FullName -Tail 200
+          }
+
       # Always upload: the logs are the only way to diagnose a failure.
       - name: Upload game and launcher logs
         if: always()
