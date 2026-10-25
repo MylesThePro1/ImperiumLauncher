@@ -208,6 +208,44 @@ Three projects, all GPL-3.0:
 - A "launch Bedrock" button (Windows `minecraft://` link) stays a later, small
   convenience; it adds no new capability.
 
+## 6b. Skins and custom capes
+
+Already in RomanicaClient: the skin screen uploads and switches skins and the
+player's official Mojang capes through api.minecraftservices.com, so they show
+for everyone. No custom cape system exists yet.
+
+Custom capes (owner direction 2026-10-25: player uploads, maybe paid capes):
+
+- **Service on api.romanica.net**: upload a PNG (size + dimension limits,
+  standard and HD layouts), stored by UUID, served to RomanicaClient, which
+  renders it on players who have one.
+- **Moderation is required, not optional.** The audience includes minors and
+  uploads will include offensive and copyrighted images. A new cape is visible
+  only to its owner until approved; a report button; staff can remove it and ban
+  uploaders; takedowns go through the existing /legal/copyright process.
+- **Selling vs free uploads**: if anyone can upload any cape for free, paid
+  capes have little value. Options: free moderated uploads plus paid
+  animated/limited Romanica capes, or paid upload slots. Sell through the
+  existing PayNow store. Check Mojang's commercial usage guidelines before
+  selling, and never make capes that imitate official Mojang capes.
+- **Who sees them**: only RomanicaClient users (and players of mods that read
+  our API). Vanilla clients only ever show Mojang capes; a server can't change
+  that.
+
+Compatibility with other cape systems:
+
+- **Seeing their capes in our client**: OptiFine, MinecraftCapes, Cosmetica and
+  similar services serve capes from public endpoints by player name or UUID, and
+  open-source mods already show several of them together. RomanicaClient can
+  read the same endpoints at runtime. Each one is a per-provider setting, off
+  until the player turns it on: every lookup tells that provider which players
+  you're seeing, and it's a dependency on someone else's service (it degrades to
+  "no cape", never breaks anything). Check each provider's terms; display only,
+  never copy their images into our repos.
+- **Our capes in their clients**: only where they choose to read us. Publish a
+  simple, documented public endpoint (`/capes/<uuid>.png`) and offer it to
+  open-source cape mods as a provider. Closed clients won't show ours.
+
 ## 7. Suggested order
 
 1. Launcher stable: Fabric manifest fix, release, real launch on the owner's PC.
