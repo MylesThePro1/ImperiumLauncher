@@ -252,6 +252,21 @@
                     }
                 },
                 {
+                    "id": "com.modrinth:modernfix-mvus:5.27.20-build.2",
+                    "name": "ModernFix-mVUS 5.27.20-build.2 for 26.3",
+                    "type": "FabricMod",
+                    "required": {
+                        "value": false,
+                        "def": true
+                    },
+                    "artifact": {
+                        "size": 1168784,
+                        "MD5": "be050737ccdbee7e458bb02b46b7940b",
+                        "sha256": "f340fff04132ae9b60eae494d2de4cd177d436da8c0e525d6bd8f5b15ed141b5",
+                        "url": "https://cdn.modrinth.com/data/TjSm1wrD/versions/pa9cAfYg/modernfix-5.27.20-build.2.jar"
+                    }
+                },
+                {
                     "id": "com.modrinth:rrls:5.2.8-mc26.3",
                     "name": "[26.3] v5.2.8",
                     "type": "FabricMod",
@@ -399,6 +414,51 @@
                         "MD5": "92e72c097bce4031b2ee69072ca3dddc",
                         "sha256": "4a8b04d26c94909a3ba9f08972fb475e7d39f715f666f99a294017baaa37cb69",
                         "url": "https://cdn.modrinth.com/data/4I1XuqiY/versions/vF6qLXsA/entity_model_features-3.3.12-26.3-fabric.jar"
+                    }
+                },
+                {
+                    "id": "com.modrinth:iris:1.11.7-26.3-fabric",
+                    "name": "Iris 1.11.7 for Fabric 26.3",
+                    "type": "FabricMod",
+                    "required": {
+                        "value": false,
+                        "def": true
+                    },
+                    "artifact": {
+                        "size": 2850938,
+                        "MD5": "6e390346ffb4f04e670d7f0ffc04887f",
+                        "sha256": "83ab4d3013dd56ac05ae503a2f596968911001c4ef3d82c59c5c79e64c34dd98",
+                        "url": "https://cdn.modrinth.com/data/YL57xq9U/versions/vTN4NRGW/iris-fabric-1.11.7%2Bmc26.3.jar"
+                    }
+                },
+                {
+                    "id": "com.modrinth:viafabricplus:5.1.2",
+                    "name": "5.1.2 (26.3)",
+                    "type": "FabricMod",
+                    "required": {
+                        "value": false,
+                        "def": true
+                    },
+                    "artifact": {
+                        "size": 10351659,
+                        "MD5": "e27a75e697b9c6615625f1d6d286c9e9",
+                        "sha256": "00ebe434d8953077362719e69ff243956dfd8e6037745ea6104cf500adc541b6",
+                        "url": "https://cdn.modrinth.com/data/rIC2XJV4/versions/USbdQnMN/ViaFabricPlus-5.1.2.jar"
+                    }
+                },
+                {
+                    "id": "com.modrinth:bbe:1.3.9+mc26.3",
+                    "name": "Better Block Entities 1.3.9+mc26.3",
+                    "type": "FabricMod",
+                    "required": {
+                        "value": false,
+                        "def": true
+                    },
+                    "artifact": {
+                        "size": 207630,
+                        "MD5": "0d72fef0b20a0963f543e4c0f5f18dbc",
+                        "sha256": "03e0a5e60b6ea16d740f5b1f1f61e6226240a99eaf0993cac2d0d0427d00ea6d",
+                        "url": "https://raw.githubusercontent.com/Romanica-MC/RomanicaLauncher/master/distribution/vendor/bbe-fabric-1.3.9+mc26.3-fabric.jar"
                     }
                 }
             ]

@@ -72,6 +72,30 @@ const VISUAL_MODS = [
   'continuity',            // connected textures — the Romanica pack is CTM-ready
   'entitytexturefeatures', // random/emissive entity variants (148 entity textures in-pack)
   'entity-model-features', // custom entity models from the pack
+  'iris',                  // shader support + renderer-layer optimizations
+];
+
+const CROSSVERSION_MODS = [
+  // Owner directive (2026-10-25): lets players use the client on other servers.
+  // Version spoofing only activates for cross-version targets; the enforcement
+  // layer's scope is romanica.net (inert elsewhere), so no interaction.
+  'viafabricplus',
+];
+
+// modernfix-mvus is the 26.3 continuation fork (embeddedt's original stops at
+// 1.20.1 on Modrinth); the owner's Alpine set runs exactly 5.27.20-build.2.
+const PERFORMANCE_MODS_EXTRA = ['modernfix-mvus'];
+
+// Vendored artifacts (committed under distribution/vendor/, served immutable):
+// BBE has no canonical 26.3 release artifact (Modrinth stops at 1.21.7; the
+// author publishes source only) — MIT license permits redistribution, so the
+// exact jar the owner runs is vendored and hash-pinned.
+const VENDORED_MODS = [
+  {
+    id: 'com.modrinth:bbe:1.3.9+mc26.3',
+    name: 'Better Block Entities 1.3.9+mc26.3',
+    file: 'bbe-fabric-1.3.9+mc26.3-fabric.jar',
+  },
 ];
 
 const CACHE_DIR = path.join(__dirname, '..', '.distro-cache');
@@ -339,13 +363,31 @@ async function main() {
 
   console.log('Resolving performance pack ...');
   const perf = [];
-  for (const slug of [...PERFORMANCE_MODS, ...QUALITY_MODS, ...VISUAL_MODS]) {
+  for (const slug of [...PERFORMANCE_MODS, ...PERFORMANCE_MODS_EXTRA, ...QUALITY_MODS, ...VISUAL_MODS, ...CROSSVERSION_MODS]) {
     try {
       perf.push(await modrinthModule(slug));
       console.log(`  ${slug} ok`);
     } catch (e) {
       console.log(`  ${slug} SKIPPED: ${e.message}`);
     }
+  }
+
+  console.log('Resolving vendored mods ...');
+  const DISTRO_RAW = 'https://raw.githubusercontent.com/Romanica-MC/RomanicaLauncher/master/distribution';
+  for (const v of VENDORED_MODS) {
+    const buf = fs.readFileSync(path.join(__dirname, '..', 'distribution', 'vendor', v.file));
+    perf.push({
+      id: v.id,
+      name: v.name,
+      type: 'FabricMod',
+      required: { value: false, def: true },
+      artifact: artifact(
+        `${DISTRO_RAW}/vendor/${v.file}`,
+        crypto.createHash('md5').update(buf).digest('hex'),
+        buf.length,
+        crypto.createHash('sha256').update(buf).digest('hex')
+      ),
+    });
   }
 
   const index = {
