@@ -71,3 +71,49 @@ test('tailGameLog ignores the previous run\'s log, then follows the new one as i
     assert.ok(text.includes('Loading Minecraft') && text.includes('Sound engine started'), text)
     assert.ok(!text.includes('old run'))
 })
+
+test('a new run reusing the file identity with content at least the baseline size is still delivered', async (t) => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'imperium-tail-reuse-'))
+    t.after(() => fs.remove(dir))
+    const log = path.join(dir, 'logs', 'latest.log')
+    await fs.ensureDir(path.dirname(log))
+    const oldRun = Array.from({ length: 8 }, (_, i) => `old run line ${i}: nothing to see`).join('\n') + '\n'
+    await fs.writeFile(log, oldRun)
+
+    const seen = []
+    const stop = tailGameLog(dir, (text) => seen.push(text), 50)
+    t.after(stop)
+    await new Promise(r => setTimeout(r, 200))
+    assert.strictEqual(seen.join(''), '', 'the previous run must not be read')
+
+    // In-place overwrite: same file identity (fs.writeFile truncates, it does not
+    // delete), new content longer than the baseline — identity and size alone
+    // cannot tell this run from the previous one, content must.
+    const newRun = BOOT.join('\n') + '\n'
+    assert.ok(newRun.length >= oldRun.length)
+    await fs.writeFile(log, newRun)
+    await new Promise(r => setTimeout(r, 300))
+    const text = seen.join('')
+    assert.ok(text.includes('Loading Minecraft') && text.includes('Sound engine started'), text)
+    assert.ok(!text.includes('old run line'), text)
+})
+
+test('the old run still appending to its own log is not mistaken for a new run', async (t) => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'imperium-tail-append-'))
+    t.after(() => fs.remove(dir))
+    const log = path.join(dir, 'logs', 'latest.log')
+    await fs.ensureDir(path.dirname(log))
+    await fs.writeFile(log, `${BOOT[0]}\n`)
+
+    const seen = []
+    const stop = tailGameLog(dir, (text) => seen.push(text), 50)
+    t.after(stop)
+    await new Promise(r => setTimeout(r, 200))
+    assert.strictEqual(seen.join(''), '', 'the previous run must not be read')
+
+    // The previous game still holds the log open and keeps chatting into it.
+    // Delivering that would fast-forward the stage tracker on stale content.
+    await fs.appendFile(log, `${BOOT[7]}\n`)
+    await new Promise(r => setTimeout(r, 250))
+    assert.strictEqual(seen.join(''), '', 'the old run appending is not a new run')
+})

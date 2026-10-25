@@ -46,14 +46,50 @@ exports.createTracker = function(){
     }
 }
 
+// How much of a log's start to compare when telling two runs' files apart. A boot's
+// first lines carry fresh timestamps, so a few lines are enough to tell them apart.
+const HEAD_BYTES = 256
+
+function readHead(file, size){
+    try {
+        const fd = fs.openSync(file, 'r')
+        try {
+            const buf = Buffer.alloc(Math.min(HEAD_BYTES, size))
+            const { bytesRead } = fs.readSync(fd, buf, 0, buf.length, 0)
+            return buf.subarray(0, bytesRead)
+        } finally {
+            fs.closeSync(fd)
+        }
+    } catch {
+        return null
+    }
+}
+
+/**
+ * Whether the file's start still looks like the baseline run's. An unreadable head
+ * cannot disprove it, so it counts as a match and the wait continues on identity and
+ * size alone; content where the baseline was empty is always new.
+ */
+function headsMatch(head, baselineHead){
+    if(head == null || baselineHead == null){
+        return true
+    }
+    if(baselineHead.length === 0){
+        return head.length === 0
+    }
+    const n = Math.min(head.length, baselineHead.length)
+    return head.compare(baselineHead, 0, n, 0, n) === 0
+}
+
 /**
  * Tail the game's logs/latest.log written by this launch, handing new text to onText.
  *
  * Reading the file instead of the process's stdout works for detached launches too, and
  * the game's piped stdout is not delivered to the launcher on every setup. The previous
- * run's latest.log is skipped: the new run's file is told apart by identity (inode) or by
- * being smaller, not by creation time, because Windows "file tunnelling" gives a file
- * recreated under the same name within 15 s the old file's creation time.
+ * run's latest.log is skipped: the new run's file is told apart by a different identity
+ * (inode), a smaller size, or a different head. Content must carry the decision because
+ * NTFS reuses a deleted file's id when the log is recreated under the same name, and
+ * Windows "file tunnelling" gives the recreated file the old one's creation time.
  *
  * @param {string} gameDir The instance directory.
  * @param {function(string): void} onText Receives each newly written chunk.
@@ -65,7 +101,7 @@ exports.tailGameLog = function(gameDir, onText, intervalMs = 400){
     let baseline = null
     try {
         const stat = fs.statSync(file)
-        baseline = { ino: stat.ino, size: stat.size }
+        baseline = { ino: stat.ino, size: stat.size, head: readHead(file, stat.size) }
     } catch {
         baseline = null
     }
@@ -83,7 +119,7 @@ exports.tailGameLog = function(gameDir, onText, intervalMs = 400){
                 return
             }
             if(!started){
-                if(stat.ino === baseline.ino && stat.size >= baseline.size){
+                if(stat.ino === baseline.ino && stat.size >= baseline.size && headsMatch(readHead(file, stat.size), baseline.head)){
                     reading = false
                     return
                 }
