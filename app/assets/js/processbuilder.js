@@ -829,7 +829,7 @@ class ProcessBuilder {
                                 // Zip-slip guard: entry names are attacker-controlled if a
                                 // natives jar is ever tampered — `..` segments, absolute
                                 // paths, or backslashes must never reach path.join.
-                                if(fileName.includes('..') || path.isAbsolute(fileName) || fileName.includes('\')){
+                                if(fileName.includes('..') || path.isAbsolute(fileName) || fileName.includes('\\')){
                                     logger.warn(`Skipping unsafe natives entry name: ${fileName}`)
                                     continue
                                 }
