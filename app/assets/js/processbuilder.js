@@ -9,6 +9,7 @@ const os                    = require('os')
 const path                  = require('path')
 
 const ConfigManager            = require('./configmanager')
+const CrashGuard               = require('../../main/crashguard')
 
 const logger = LoggerUtil.getLogger('ProcessBuilder')
 
@@ -370,6 +371,11 @@ class ProcessBuilder {
     }
 
     _processAutoConnectArg(args){
+        // After an early crash, open the menus once instead of rejoining into the crash.
+        if(CrashGuard.consumeSkip(ConfigManager)){
+            logger.info('Skipping auto-connect for this launch: the last game crashed shortly after starting.')
+            return
+        }
         if(ConfigManager.getAutoConnect() && this.server.rawServer.autoconnect){
             if(mcVersionAtLeast('1.20', this.server.rawServer.minecraftVersion)){
                 args.push('--quickPlayMultiplayer')

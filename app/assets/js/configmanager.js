@@ -89,6 +89,8 @@ const DEFAULT_CONFIG = {
             resHeight: 720,
             fullscreen: false,
             autoConnect: true,
+            // Set by crashguard after an early crash: the next launch skips auto-connect once.
+            skipAutoConnectOnce: false,
             launchDetached: true
         },
         launcher: {
@@ -875,6 +877,24 @@ exports.getAutoConnect = function(def = false){
  */
 exports.setAutoConnect = function(autoConnect){
     config.settings.game.autoConnect = autoConnect
+}
+
+/**
+ * Check if the next launch must skip auto-connect (set after an early crash).
+ *
+ * @returns {boolean} Whether auto-connect is suspended for the next launch.
+ */
+exports.getSkipAutoConnectOnce = function(){
+    return config.settings.game.skipAutoConnectOnce === true
+}
+
+/**
+ * Suspend (or clear the suspension of) auto-connect for the next launch.
+ *
+ * @param {boolean} skip Whether the next launch should skip auto-connect.
+ */
+exports.setSkipAutoConnectOnce = function(skip){
+    config.settings.game.skipAutoConnectOnce = skip
 }
 
 /**
