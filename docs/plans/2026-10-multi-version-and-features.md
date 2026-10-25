@@ -620,6 +620,48 @@ with plugin changes.
 4. O3 startup, O4 memory.
 5. O5, O6, O7, L2, L3 as profiles justify.
 
+## 6h. Java to Kotlin, everywhere it's ours
+
+Owner direction (2026-10-25): convert all Java code to Kotlin. Scope today
+(counted 2026-10-25): the launcher, website and backend are JS/TS, so this is the
+client and the plugin only; Minecraft's own code is Mojang's and isn't ours to
+convert (6g).
+
+| Repo | Kotlin | Java left |
+|---|---|---|
+| RomanicaPlugin | 1,382 files | 1 test file (`src/test/net/imperiummc/`) |
+| RomanicaClient | 583 files | 34 gametest classes + 17 mixins |
+
+### Plan
+
+1. **Plugin test** (1 file): convert. Trivial; the governance test ratchets stay
+   green.
+2. **Client gametests** (34 files, `versions/latest/src/test/java/`): convert to
+   Kotlin. Fabric's client gametest API works from Kotlin via
+   fabric-language-kotlin. Proof: the gametest job must report the same test
+   count before and after (and it must actually boot first, see the CI note).
+3. **The 17 Java mixins: keep in Java unless proven safe.** Every one touches
+   *static* members of Minecraft classes: `@Shadow static` fields, static
+   `@Accessor`/`@Invoker` methods on interfaces, or `@WrapMethod` on static
+   methods. Kotlin has no real statics (it uses companion objects), and Mixin
+   either rejects the companion or merges the wrong members. AGENTS.md already
+   records a Kotlin mixin that replaced `Minecraft.setLevel` and crashed every
+   world join. Rule: convert a mixin only when (a) it has no static members, or
+   (b) the Kotlin version is exported with `-Dmixin.debug.export=true` and checked
+   with `javap` to produce the same merged class. Otherwise it stays Java with a
+   one-line comment saying why.
+4. **Guard**: a check that fails CI if a new `.java` file appears outside the
+   mixin allow-list, so the codebase stays Kotlin.
+
+### Found while counting
+
+- `ClientBrandRetrieverMixin` still reports the client brand **"ImperiumClient"**
+  to every server, and the client/server channels are still named
+  `imperiumclient:*` (`ImperiumClientDataChannels.kt` in the plugin). Renaming the
+  brand is a one-liner; renaming the channels must change client and plugin in
+  the same release (accept both names for one release, then drop the old). Track
+  with the rebrand clean-up, not with the Kotlin work.
+
 ## 7. Suggested order
 
 1. Launcher stable: Fabric manifest fix, release, real launch on the owner's PC.
