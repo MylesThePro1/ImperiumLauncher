@@ -188,7 +188,7 @@ const ConfigManager = (function(){
         },
 
         getSelectedServer(def = false){
-            return !def ? config.selectedServer : config.clientToken
+            return !def ? config.selectedServer : defaults.selectedServer
         },
 
         setSelectedServer(serverID){
