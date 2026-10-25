@@ -640,18 +640,26 @@ convert (6g).
    Kotlin. Fabric's client gametest API works from Kotlin via
    fabric-language-kotlin. Proof: the gametest job must report the same test
    count before and after (and it must actually boot first, see the CI note).
-3. **The 17 Java mixins: keep in Java unless proven safe.** Every one touches
-   *static* members of Minecraft classes: `@Shadow static` fields, static
-   `@Accessor`/`@Invoker` methods on interfaces, or `@WrapMethod` on static
-   methods. Kotlin has no real statics (it uses companion objects), and Mixin
-   either rejects the companion or merges the wrong members. AGENTS.md already
-   records a Kotlin mixin that replaced `Minecraft.setLevel` and crashed every
-   world join. Rule: convert a mixin only when (a) it has no static members, or
-   (b) the Kotlin version is exported with `-Dmixin.debug.export=true` and checked
-   with `javap` to produce the same merged class. Otherwise it stays Java with a
-   one-line comment saying why.
+3. **The 17 mixins: Kotlin wherever possible, a thin Java shell only where
+   required** (owner direction 2026-10-25). Every one touches *static* members of
+   Minecraft classes: `@Shadow static` fields, static `@Accessor`/`@Invoker`
+   methods on interfaces, or `@WrapMethod` on static methods. Kotlin has no real
+   statics (it uses companion objects), and Mixin either rejects the companion or
+   merges the wrong members; AGENTS.md records a Kotlin mixin that replaced
+   `Minecraft.setLevel` and crashed every world join. A `.kt` file can't contain
+   Java, so the split is per role:
+   - **Kotlin** (`.kt`): all the behaviour, meaning what the patch decides and
+     does, its checks and helpers, as plain Kotlin functions.
+   - **Java shell** (`.java`): only the declarations Mixin needs as true statics
+     (the `@Shadow static` field, the static accessor, the static method
+     signature), each a one-line call into the Kotlin code. Comment: "Java only for
+     static members; logic in <File>.kt".
+   - A mixin with no static members converts to Kotlin fully.
+   - Proof per mixin: export the merged classes (`-Dmixin.debug.export=true`),
+     compare with `javap` before and after, then the gametest that covers it.
 4. **Guard**: a check that fails CI if a new `.java` file appears outside the
-   mixin allow-list, so the codebase stays Kotlin.
+   mixin-shell allow-list, or if a shell grows beyond declarations plus one-line
+   calls, so the codebase stays Kotlin.
 
 ### Found while counting
 
