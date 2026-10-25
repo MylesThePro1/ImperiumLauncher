@@ -21,6 +21,74 @@ Ground rules carried into every phase:
   company acquisitions) come from the owner's research and were **not
   re-verified** here. Re-check them before committing to a phase.
 
+## 0. Owner direction (2026-10-25)
+
+1. **Meet players on the versions they already play.** Someone switching to
+   RomanicaClient should keep their version, worlds, settings and packs, not be
+   forced onto 26.3.
+2. **Updates never cost players their stuff.** Worlds, screenshots, options,
+   keybinds, resource/shader packs, server lists and their own mods survive every
+   launcher and client update.
+3. **Depend on nobody but Microsoft.** Identity, friends and sign-in come from
+   Microsoft; everything else runs on Romanica's own backend (api.romanica.net).
+   No AxolotlClient services, no other client's infrastructure.
+
+### 0a. Keeping players' stuff
+
+What already holds: the launcher's mod cleanup (`managedmodcleanup.js`) only
+deletes files it can prove it installed and leaves everything else alone; worlds
+and configs are never touched.
+
+To add with the instance model:
+
+- **Split every instance into managed and player-owned files.** The launcher may
+  replace only what it manages (loader, managed mods, libraries, assets).
+  `saves/`, `screenshots/`, `options.txt`, `servers.dat`, `resourcepacks/`,
+  `shaderpacks/`, `config/` and user-added mods are never deleted or overwritten.
+- **Version upgrades copy, never move.** "Upgrade this instance to 26.3" makes a
+  new instance and copies worlds/settings forward; the old one stays playable.
+  Minecraft can't load a world back into an older version once it's been opened in
+  a newer one, so upgrading a world in place without a copy is how players lose it.
+- **Automatic backup before any migration** (config schema changes, version
+  upgrades): a dated zip of the player-owned files, last 3 kept.
+- **Tests** for each rule against a temp directory (never real `%APPDATA%`; see the
+  AGENTS.md lesson where `npm test` deleted the owner's config).
+
+### 0b. Importing players' existing versions
+
+- **Vanilla launcher**: read `.minecraft/versions`, `saves`, `options.txt`,
+  `servers.dat`, `resourcepacks`. Offer "use as-is" (point at the folder) or
+  "copy into a Romanica instance". Never modify the vanilla folder.
+- **Other launchers' instance folders** (MultiMC/Prism-style, CurseForge,
+  Modrinth App): detect, show version + loader + mod count, import by copy.
+- After import, RomanicaClient is added to the instance only if a build exists for
+  that version and loader; otherwise the instance still launches, without the
+  client (clearly labelled).
+- This makes phase A/B/C (below) about **which versions get RomanicaClient
+  features**, not which versions players are allowed to play. The launcher can
+  launch any vanilla or Fabric version much earlier than the client supports it.
+
+### 0c. Independence from AxolotlClient
+
+RomanicaClient still uses four upstream services or identifiers:
+
+| Where | What | Replace with |
+|---|---|---|
+| `common/.../api/Constants.kt` | Friends, chat, status API at `api.axolotlclient.com/v1/` | api.romanica.net, signed in with the player's Microsoft account |
+| `common/.../auth/MSApi.kt` | In-client Microsoft sign-in uses **upstream's Azure app ID `938592fc-...`** | Romanica's Azure app `8b0c9e33-b6ce-40ec-ac30-c85a35dd8163` (needs the in-client sign-in flow, e.g. device code, enabled on that app) |
+| `common/.../api/Constants.kt` | Terms link `axolotlclient.com/terms` | romanica.net/legal/terms |
+| `common/src/main/resources/fabric.mod.json`, `TitleScreenMixin.kt` | Upstream homepage + update link to their Modrinth page | romanica.net/client |
+
+"Only Microsoft" in practice: Microsoft provides **who you are** (Xbox sign-in,
+already approved) and probably **who your friends are** (Xbox social API, spike
+below). Microsoft does not offer a chat, party or presence service for third-party
+Minecraft clients, so in-client chat and parties run on Romanica's backend, keyed
+by the Microsoft account. That's still no third party.
+
+Order: swap the Azure ID first (smallest, it's identity), then stand up the
+friends/chat endpoints on api.romanica.net and point the client at them, then
+remove the upstream code paths. Keep the existing screens; only the backend moves.
+
 ## 1. Where the launcher is today
 
 - One server, one Minecraft version (26.3), one loader (Fabric), defined by
@@ -85,11 +153,8 @@ Gaps worth planning, highest value first:
 
 1. **Replay / "rewind" clips** (save the last 30-60 s on a key). Biggest gap, and
    directly feeds TikTok/Shorts growth. Large: record packets, re-render offline.
-2. **Own friends/chat backend.** Today the friends and chat screens talk to
-   **AxolotlClient upstream's service (`api.axolotlclient.com`)**, not ours. Same
-   class of risk as the borrowed Azure ID: their outage, policy or shutdown is our
-   outage, and players' social graph lives on a third party. Move it to
-   api.romanica.net, then add Xbox friends (below).
+2. **Own friends/chat backend.** See 0c: the screens exist, the backend is
+   upstream's. Move it to api.romanica.net, then add Xbox friends (below).
 3. **Xbox friends list.** The Azure app (`8b0c9e33-...`) is already approved for
    XboxLive.signin. Friends should need only a second XSTS token for relying party
    `http://xboxlive.com` and a call to the Xbox social/people API. **Not verified:**
@@ -120,10 +185,12 @@ Gaps worth planning, highest value first:
 
 ## 7. Suggested order
 
-1. Launcher stable: Fabric manifest fix, release, smoke with real game log.
-2. Friends backend off upstream (risk reduction, no new features).
+1. Launcher stable: Fabric manifest fix, release, real launch on the owner's PC.
+2. Off AxolotlClient (0c): Azure ID swap, then friends/chat on api.romanica.net.
 3. Xbox friends spike (one real sign-in, no UI).
-4. Instance model + phase A versions + performance preset.
-5. Host-a-world (Java first, then Geyser).
-6. Replay clips.
-7. Phase B loaders/versions, then phase C.
+4. Instance model with the managed/player-owned split and backups (0a).
+5. Import existing installs (0b); any vanilla/Fabric version launches.
+6. RomanicaClient builds for phase A versions + performance preset.
+7. Host-a-world (Java first, then Geyser).
+8. Replay clips.
+9. Phase B loaders/versions, then phase C.
