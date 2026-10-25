@@ -46,7 +46,7 @@
     "electron": "^44.9.3",
     "electron-builder": "^26.18.0",
     "eslint": "^9.39.2",
-    "typescript": "^7.0.2"
+    "typescript": "~5.9.0"
   },
   "repository": {
     "type": "git",
