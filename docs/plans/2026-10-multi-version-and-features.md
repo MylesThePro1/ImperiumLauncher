@@ -1025,3 +1025,43 @@ add to the website, Modrinth page and installer).
 sign-in button went live before it worked. Every feature in this plan ships behind
 a flag that is off until its evidence exists (Bedrock joining, Console, store
 checkout, imports), so partial work can merge without reaching players.
+
+### Owner decisions on round 3 (2026-10-25)
+
+- **Chat and communities on Discord; friendship on Xbox.** No chat service in or
+  behind the client. Friends list and presence come from Xbox (spike in 0c).
+  Discord is where players chat; RomanicaClient already has a Discord Rich
+  Presence module (`DiscordRPC.kt`) with Discord's join / ask-to-join handlers,
+  so "join my server" from a Discord profile works with nothing hosted. Make it
+  show the server and offer Join on Romanica and other servers (player's choice
+  per server).
+- **G11, unlimited accounts, spaced sign-ins.** Players may keep any number of
+  accounts signed in, but sign-ins and token refreshes go through one queue:
+  one Microsoft sign-in at a time, a minimum gap between them, back-off on
+  "too many requests" (HTTP 429), tokens reused until near expiry so refreshes
+  don't cluster. Logging 50 accounts in at once becomes 50 spaced sign-ins, never
+  a burst; the gap is not configurable to zero. Goal: Romanica's Azure app never
+  looks abusive to Microsoft. Measure real limits once on the owner's PC.
+- **G12, GitHub Releases for downloads.** Large artifacts (vendored jars, client
+  jars) move to GitHub Releases; `raw.githubusercontent.com` keeps only small
+  JSON (the index, the hacked-client registry).
+- **G13, no antivirus false positives (goal).** No single step guarantees it;
+  together these get close:
+  1. Code-sign every exe/dll and the installer (B8): the biggest single factor.
+  2. Standard installer (electron-builder NSIS), no packers, no obfuscation, no
+     self-extracting downloads of executables into temp folders, no process
+     injection; the Console runs in-process or as a normal signed child process.
+  3. Scan each release build in CI (e.g. VirusTotal's free API) before
+     publishing; a detection blocks the release until resolved.
+  4. Submit every release to Microsoft's malware-analysis portal and to any
+     vendor that flags it, as a false positive.
+  5. Consistent publisher name and signing identity across releases so reputation
+     accumulates.
+- **G14, AxolotlClient: keep, credit, use selectively.** Not dropping upstream:
+  RomanicaClient stays built on AxolotlClient, keeps crediting moehreag and
+  contributors (README, LGPL notice, credits screen G5), keeps merging upstream
+  fixes where useful (security and Minecraft-update fixes especially), and simply
+  doesn't use the upstream online services (0c).
+- **G16, not official.** Confirmed: nothing implies official Mojang/Microsoft
+  status; the "not an official Minecraft product" line goes on the website,
+  Modrinth page and installer.
