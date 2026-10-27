@@ -169,6 +169,8 @@ async function makeFixture(t, { logLines }){
     const javaHome = path.join(workDir, 'jre')
     await fs.ensureDir(path.join(javaHome, 'bin'))
     await fs.writeFile(path.join(javaHome, 'bin', 'javaw.exe'), 'fake')
+    // The driver looks for bin/java off Windows.
+    await fs.writeFile(path.join(javaHome, 'bin', 'java'), 'fake')
     const mesaDll = path.join(workDir, 'mesa', 'opengl32.dll')
     await fs.ensureDir(path.dirname(mesaDll))
     await fs.writeFile(mesaDll, 'fake mesa dll')
@@ -316,6 +318,23 @@ test('runSmoke times out when the title screen never appears', { timeout: 20000 
 
     assert.strictEqual(result.ok, false)
     assert.match(result.reason, /timed out waiting for the title-screen/)
+})
+
+test('runSmoke fails when the game never writes a log, even with the natives guard green', { timeout: 20000 }, async (t) => {
+    // CI runs 0.2.6-0.2.8: spawn + natives guard markers, then no latest.log for
+    // the whole window. That proves nothing about the game and must not pass.
+    const fixture = await makeFixture(t, { logLines: null })
+    const spawnImpl = fixture.deps.spawnImpl
+    fixture.deps.spawnImpl = (...args) => {
+        const child = spawnImpl(...args)
+        setImmediate(() => child.stdout.emit('data', Buffer.from('[SMOKE] lwjgl.dll present in the resolved natives folder\n')))
+        return child
+    }
+    fixture.options.gameTimeoutMs = 300
+    const result = await smoke.runSmoke(fixture.options, fixture.deps)
+
+    assert.strictEqual(result.ok, false, result.reason)
+    assert.match(result.reason, /no latest\.log/)
 })
 
 test('runSmoke rejects a missing java executable before spawning anything', { timeout: 20000 }, async (t) => {
