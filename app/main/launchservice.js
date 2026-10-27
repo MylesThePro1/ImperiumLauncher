@@ -31,6 +31,7 @@ const { reapStaleManagedModules } = require('../assets/js/managedmodcleanup')
 const ProcessBuilder     = require('../assets/js/processbuilder')
 const DiscordWrapper     = require('../assets/js/discordwrapper')
 const CrashScreen        = require('../assets/js/crashscreen')
+const CrashGuard         = require('./crashguard')
 const { createTracker, tailGameLog } = require('./gameprogress')
 
 const loggerLaunchSuite = LoggerUtil.getLogger('LaunchSuite')
@@ -507,6 +508,7 @@ async function runLaunch(login){
             // Build Minecraft process.
             child = pb.build()
             proc = child
+            const startedAt = Date.now()
 
             // Follow the game's latest.log (not stdout, which does not reach the
             // launcher on every setup) to drive the startup stages.
@@ -521,7 +523,22 @@ async function runLaunch(login){
                 DiscordWrapper.initRPC(distro.rawDistribution.discord, serv.rawServer.discord)
                 hasRPC = true
             }
-            child.on('close', (_code, _signal) => {
+            // spawn reports a Java executable it can't start (missing, relative to
+            // the game folder, blocked) as 'error' and never 'close'. Unhandled, that
+            // crashed the main process and the launch hung at "Starting Minecraft".
+            child.on('error', (err) => {
+                loggerLaunchSuite.error('The game process could not be started.', err)
+                stopTail()
+                clearTimeout(readyTimer)
+                if(proc === child){
+                    proc = null
+                }
+                emit({ kind: 'failure', title: L('landing.dlAsync.errorDuringLaunchTitle'), desc: L('landing.dlAsync.gameStartFailed') })
+            })
+            child.on('close', (code, _signal) => {
+                if(CrashGuard.recordExit(core.ConfigManager, code, Date.now() - startedAt)){
+                    loggerLaunchSuite.warn(`Game exited with code ${code} shortly after launch; the next launch will open the menus instead of auto-connecting.`)
+                }
                 stopTail()
                 clearTimeout(readyTimer)
                 if(hasRPC){

@@ -94,7 +94,7 @@ function scanLog(text){
  * @param {Object} options {serverId, uuid, name, dataDir, javaExec}
  * @returns {Object} The config object to write.
  */
-function buildSmokeConfig({ serverId, uuid, name, dataDir, javaExec, ramMB = 4096 }){
+function buildSmokeConfig({ serverId, uuid, name, dataDir, javaExec, ramMB = 4096, extraJvmOptions = [] }){
     const ram = `${ramMB}M`
     return {
         settings: {
@@ -144,7 +144,8 @@ function buildSmokeConfig({ serverId, uuid, name, dataDir, javaExec, ramMB = 409
                     '-XX:G1NewSizePercent=20',
                     '-XX:G1ReservePercent=20',
                     '-XX:MaxGCPauseMillis=50',
-                    '-XX:G1HeapRegionSize=32M'
+                    '-XX:G1HeapRegionSize=32M',
+                    ...extraJvmOptions
                 ]
             }
         }
@@ -195,7 +196,10 @@ async function runSmoke(options, deps = {}){
     const serverId = options.serverId || DEFAULTS.serverId
     const uuid = DEFAULTS.uuid
     const name = DEFAULTS.name
-    const javaExec = path.join(options.javaHome, 'bin', process.platform === 'win32' ? 'javaw.exe' : 'java')
+    // Absolute: the launcher spawns Java with the game folder as its working
+    // directory, and Windows resolves a relative executable against that, so
+    // "jre\\bin\\javaw.exe" was never found and the game never started.
+    const javaExec = path.resolve(options.javaHome, 'bin', process.platform === 'win32' ? 'javaw.exe' : 'java')
     const artifactsDir = options.artifactsDir || path.join(ROOT, '.smoke-artifacts')
     const gameDir = path.join(options.dataDir, 'instances', serverId)
     const latestLog = path.join(gameDir, 'logs', 'latest.log')
@@ -224,7 +228,13 @@ async function runSmoke(options, deps = {}){
     }
     fs.rmSync(uDir, { recursive: true, force: true })
     fs.mkdirSync(uDir, { recursive: true })
-    const config = buildSmokeConfig({ serverId, uuid, name, dataDir: options.dataDir, javaExec })
+    // The JVM's own class-load log lands in the game folder (its working
+    // directory): when the game never writes latest.log, the last loaded class
+    // shows how far it got.
+    const config = buildSmokeConfig({
+        serverId, uuid, name, dataDir: options.dataDir, javaExec,
+        extraJvmOptions: ['-Xlog:class+load=info:file=jvm-classload.log']
+    })
     fs.writeFileSync(path.join(uDir, 'config.json'), JSON.stringify(config, null, 4))
     log(`seeded config at ${path.join(uDir, 'config.json')}`)
     log(`data directory ${options.dataDir}, game dir ${gameDir}`)
@@ -240,9 +250,14 @@ async function runSmoke(options, deps = {}){
         if(!fs.existsSync(options.mesaDll)){
             return { ok: false, reason: `mesa dll not found at ${options.mesaDll}` }
         }
-        const dest = path.join(path.dirname(javaExec), 'opengl32.dll')
-        fs.copyFileSync(options.mesaDll, dest)
-        log(`copied mesa opengl32.dll to ${dest}`)
+        // opengl32.dll loads the real driver (libgallium_wgl.dll) from the same
+        // folder, so every DLL shipped beside it goes next to javaw.exe too.
+        const mesaDir = path.dirname(path.resolve(options.mesaDll))
+        for(const name of fs.readdirSync(mesaDir).filter(n => n.toLowerCase().endsWith('.dll'))){
+            const dest = path.join(path.dirname(javaExec), name === path.basename(options.mesaDll) ? 'opengl32.dll' : name)
+            fs.copyFileSync(path.join(mesaDir, name), dest)
+            log(`copied mesa ${name} to ${dest}`)
+        }
     }
 
     // The previous run's latest.log already holds the title-screen marker; matching it
@@ -323,9 +338,20 @@ async function runSmoke(options, deps = {}){
     const gameDeadline = now() + (options.gameTimeoutMs || DEFAULTS.gameTimeoutMs)
     let logOffset = 0
     let gameText = ''
+    let nextSample = now() + SAMPLE_EVERY_MS
+    const sampleGameProcess = deps.sampleGameProcess || sampleJavaProcesses
     while(now() < gameDeadline){
         if(launcherExited != null && launcherExited !== 0){
             return finish(false, `launcher exited with code ${launcherExited} while the game was running`)
+        }
+        // The launcher logs the game's exit ("Exited with code N"). A game that is
+        // gone can't reach the title screen: fail now instead of waiting out the window.
+        const exited = /Exited with code (-?\d+|null)/.exec(launcherText)
+        if(exited != null && !scanLog(gameText).passed){
+            await sleep(options.pollMs || DEFAULTS.pollMs)
+            try { fs.copyFileSync(latestLog, path.join(artifactsDir, 'latest.log')) } catch { /* absent */ }
+            sweepGameDir(gameDir, artifactsDir)
+            return finish(false, `the game exited (code ${exited[1]}) before the title screen`)
         }
         try {
             const stat = fs.statSync(latestLog)
@@ -360,24 +386,40 @@ async function runSmoke(options, deps = {}){
             } catch{ /* artifact copy is best effort */ }
             return finish(true, 'title screen reached')
         }
+        if(now() >= nextSample){
+            sampleGameProcess(log)
+            nextSample = now() + SAMPLE_EVERY_MS
+        }
         await sleep(options.pollMs || DEFAULTS.pollMs)
     }
     try { fs.copyFileSync(latestLog, path.join(artifactsDir, 'latest.log')) } catch { /* absent */ }
     sweepGameDir(gameDir, artifactsDir)
-    // Scope note: on GitHub's 2-core GPU-less runners the software-GL boot to the
-    // title screen takes longer than any practical job budget. The launcher-side
-    // bar this test exists for (distribution sync + hash verification + natives
-    // extraction guard + successful spawn, then no crash markers in the watch
-    // window) has been met: the game ran the whole window without a failure
-    // marker, so this is a PASS with the boot-depth caveat in the verdict.
-    if (launcherText.includes('[SMOKE] lwjgl.dll present in the resolved natives folder')
-        && launcherText.includes('[SMOKE] game spawned')
-        && launcherExited == null) {
-        return finish(true, 'game spawned with the natives guard green and no failure markers in the watch window (software-GL title-screen boot exceeds the runner budget)')
+    // Only the game's own log proves the game ran. A spawn marker with no log, or a
+    // log that never reached the title screen, is a fail (AGENTS.md: a fallback
+    // verdict is not a pass; 0.2.6-0.2.8 "passed" this way with no latest.log).
+    if(gameText.length === 0){
+        return finish(false, 'timed out with no latest.log from this run: the game never logged anything')
     }
-    return finish(false, 'timed out waiting for the title-screen marker and the natives guard or spawn markers were missing')
+    return finish(false, 'timed out waiting for the title-screen marker in latest.log')
 }
 
+
+const SAMPLE_EVERY_MS = 2 * 60 * 1000
+
+/* Log the running Java processes (CPU time, memory) so a silent game shows
+ * whether it is busy or stuck. Windows only; a no-op elsewhere. */
+function sampleJavaProcesses(log){
+    if(process.platform !== 'win32'){
+        return
+    }
+    try {
+        const out = require('child_process').execFileSync('tasklist',
+            ['/V', '/FO', 'CSV', '/NH', '/FI', 'IMAGENAME eq javaw.exe'], { encoding: 'utf8', timeout: 15000 })
+        log(`java processes: ${out.trim() || '(none)'}`)
+    } catch(err){
+        log(`could not list java processes: ${err.message}`)
+    }
+}
 
 /* On timeout, sweep the game dir for JVM crash artifacts (hs_err_pid*.log,
  * crash-reports/) so a runner-only failure is never diagnosed blind. */

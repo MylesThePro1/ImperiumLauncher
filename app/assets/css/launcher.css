@@ -2171,6 +2171,13 @@ input:checked + .toggleSwitchSlider:before {
 }
 
 /* Description for memory management. */
+#settingsRAMWarning {
+    font-size: 11px;
+    margin: 14px 0px 0px 0px;
+    color: #e8e18b;
+    font-weight: bold;
+}
+
 #settingsMemoryDesc {
     font-size: 10px;
     margin: 20px 0px;

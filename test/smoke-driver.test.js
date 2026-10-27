@@ -169,9 +169,12 @@ async function makeFixture(t, { logLines }){
     const javaHome = path.join(workDir, 'jre')
     await fs.ensureDir(path.join(javaHome, 'bin'))
     await fs.writeFile(path.join(javaHome, 'bin', 'javaw.exe'), 'fake')
+    // The driver looks for bin/java off Windows.
+    await fs.writeFile(path.join(javaHome, 'bin', 'java'), 'fake')
     const mesaDll = path.join(workDir, 'mesa', 'opengl32.dll')
     await fs.ensureDir(path.dirname(mesaDll))
     await fs.writeFile(mesaDll, 'fake mesa dll')
+    await fs.writeFile(path.join(path.dirname(mesaDll), 'libgallium_wgl.dll'), 'fake mesa driver')
 
     const dataDir = path.join(workDir, 'data')
     const artifactsDir = path.join(workDir, 'artifacts')
@@ -234,6 +237,8 @@ test('runSmoke passes when the game log reaches the title screen', { timeout: 20
     assert.strictEqual(fixture.events.killed, 1, 'the process tree must be cleaned up')
     // Mesa was placed next to javaw.exe before the launch.
     assert.strictEqual(fs.existsSync(path.join(fixture.javaHome, 'bin', 'opengl32.dll')), true)
+    // ...with the driver it loads (opengl32.dll alone has no WGL: run 40447167447).
+    assert.strictEqual(fs.existsSync(path.join(fixture.javaHome, 'bin', 'libgallium_wgl.dll')), true)
     // The seeded config landed in the ISOLATED smoke userData — and never in the
     // profile-shaped path under APPDATA (the 2026-10-24 clobber regression).
     const uDir = path.join(os.tmpdir(), 'imperium-smoke-userdata')
@@ -316,6 +321,42 @@ test('runSmoke times out when the title screen never appears', { timeout: 20000 
 
     assert.strictEqual(result.ok, false)
     assert.match(result.reason, /timed out waiting for the title-screen/)
+})
+
+test('runSmoke fails when the game never writes a log, even with the natives guard green', { timeout: 20000 }, async (t) => {
+    // CI runs 0.2.6-0.2.8: spawn + natives guard markers, then no latest.log for
+    // the whole window. That proves nothing about the game and must not pass.
+    const fixture = await makeFixture(t, { logLines: null })
+    const spawnImpl = fixture.deps.spawnImpl
+    fixture.deps.spawnImpl = (...args) => {
+        const child = spawnImpl(...args)
+        setImmediate(() => child.stdout.emit('data', Buffer.from('[SMOKE] lwjgl.dll present in the resolved natives folder\n')))
+        return child
+    }
+    fixture.options.gameTimeoutMs = 300
+    const result = await smoke.runSmoke(fixture.options, fixture.deps)
+
+    assert.strictEqual(result.ok, false, result.reason)
+    assert.match(result.reason, /no latest\.log/)
+})
+
+test('runSmoke fails as soon as the game exits before the title screen', { timeout: 20000 }, async (t) => {
+    const fixture = await makeFixture(t, {
+        logLines: ['[main/INFO]: Loading Minecraft 26.3 with Fabric Loader 0.20.1']
+    })
+    const spawnImpl = fixture.deps.spawnImpl
+    fixture.deps.spawnImpl = (...args) => {
+        const child = spawnImpl(...args)
+        setTimeout(() => child.stdout.emit('data', Buffer.from('[ProcessBuilder]: Exited with code -1\n')), 50)
+        return child
+    }
+    fixture.options.gameTimeoutMs = 10000
+    const started = Date.now()
+    const result = await smoke.runSmoke(fixture.options, fixture.deps)
+
+    assert.strictEqual(result.ok, false, result.reason)
+    assert.match(result.reason, /exited \(code -1\) before the title screen/)
+    assert.ok(Date.now() - started < 5000, 'does not wait out the whole window')
 })
 
 test('runSmoke rejects a missing java executable before spawning anything', { timeout: 20000 }, async (t) => {

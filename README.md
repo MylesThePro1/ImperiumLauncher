@@ -15,7 +15,7 @@ Fully functional end to end (2026-10-20):
 
 | Area | State |
 | ---- | ----- |
-| Distribution index | Live at [`distribution/distribution.json`](distribution/distribution.json) - Minecraft 26.3, Fabric, Imperium Client 0.2.0-beta.6, Fabric API and the performance mods, every file hash-verified on each launch. |
+| Distribution index | Live at [`distribution/distribution.json`](distribution/distribution.json) - Minecraft 26.3, Fabric, Romanica Client 0.2.0-beta.25, Fabric API and the performance mods, every file hash-verified on each launch. |
 | Microsoft login | **Working - owner-verified sign-in 2026-10-20.** Mojang Enforcement allow-listed the Azure app (`8b0c9e33-b6ce-40ec-ac30-c85a35dd8163`) on 2026-10-19. |
 | Logo | All launcher branding (exe/installer icon, window icon, welcome/login seal, loading emblem) is the website's `Logo.png` emblem, byte-identical for the PNGs, multi-size ICOs generated from it. |
 | Self-update | Auto-updater wired to this repo's GitHub releases. |
@@ -62,8 +62,8 @@ More detail: Helios' own guide in [docs/MicrosoftAuth.md](docs/MicrosoftAuth.md)
 Requires [Node.js](https://nodejs.org/) 22 (`engines` in `package.json`). Node 24 also builds.
 
 ```console
-git clone https://github.com/Imperium-MC/ImperiumLauncher.git
-cd ImperiumLauncher
+git clone https://github.com/Romanica-MC/RomanicaLauncher.git
+cd RomanicaLauncher
 npm ci
 npm start
 ```

@@ -24,6 +24,8 @@ env:
   # and artifact paths follow it. (Runs v0.2.0-v0.2.4 failed on the stale ImperiumMC
   # seed - the launcher exited 1 before spawning the game.)
   SERVER_ID: Romanica
+  # No GPU on the runner: Mesa's CPU renderer.
+  GALLIUM_DRIVER: llvmpipe
 
 jobs:
   windows-launch-smoke:
@@ -73,14 +75,20 @@ jobs:
           echo "$MESA_SHA256  mesa.7z" | sha256sum -c -
         shell: bash
 
-      - name: Extract opengl32.dll from the Mesa archive
+      # opengl32.dll is only a front for libgallium_wgl.dll (the actual Mesa driver).
+      # With opengl32.dll alone, LWJGL fails at boot with "There is no OpenGL context
+      # management API available" (run 40447167447's crash report).
+      - name: Extract the Mesa OpenGL driver from the archive
         run: |
-          7z e mesa.7z -omesa -y x64/opengl32.dll
-          if (-not (Test-Path mesa\opengl32.dll)) {
-            throw "x64/opengl32.dll missing from the Mesa archive"
+          7z e mesa.7z -omesa -y x64/opengl32.dll x64/libgallium_wgl.dll
+          foreach ($dll in 'opengl32.dll', 'libgallium_wgl.dll') {
+            if (-not (Test-Path "mesa\$dll")) { throw "x64/$dll missing from the Mesa archive" }
           }
 
       - name: Run the launch smoke test
+        env:
+          # Test the distribution index of this exact commit, not master's.
+          IMPERIUM_SMOKE_DISTRO_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/distribution/distribution.json
         run: >
           node test/smoke/launch-smoke.cjs
           --exe "dist/win-unpacked/Romanica Launcher.exe"
@@ -89,6 +97,49 @@ jobs:
           --mesa "mesa\opengl32.dll"
           --server "$env:SERVER_ID"
           --artifacts-dir smoke-artifacts
+
+      # Evidence for every run, pass or fail: the head of the game's own log
+      # from this run. No log means the game never started; treat it as a fail.
+      - name: Show the game log
+        if: always()
+        shell: pwsh
+        run: |
+          $log = Join-Path $env:RUNNER_TEMP 'imperium-data\instances\Romanica\logs\latest.log'
+          if (Test-Path $log) {
+            Write-Output "===== latest.log (first 40 lines) ====="
+            Get-Content $log -TotalCount 40
+            Write-Output "===== latest.log (last 20 lines) ====="
+            Get-Content $log -Tail 20
+          } else {
+            Write-Output "::warning::no latest.log from this run"
+          }
+
+      # Every run prints the launcher's own output (it carries the game's stdout and
+      # stderr) and what the game left on disk, so the cause is readable without
+      # downloading the artifact.
+      - name: Show the launcher log and the game folder
+        if: always()
+        shell: pwsh
+        run: |
+          $game = Join-Path $env:RUNNER_TEMP 'imperium-data\instances\Romanica'
+          Write-Output "===== game folder ====="
+          if (Test-Path $game) {
+            Get-ChildItem $game -Force | Format-Table Mode, LastWriteTime, Length, Name -AutoSize | Out-String -Width 200
+            foreach ($sub in 'logs', 'crash-reports', 'config') {
+              $p = Join-Path $game $sub
+              if (Test-Path $p) { Write-Output "--- $sub"; Get-ChildItem $p -Force | Select-Object -First 40 | Format-Table Length, Name -AutoSize | Out-String -Width 200 }
+            }
+            $cl = Join-Path $game 'jvm-classload.log'
+            if (Test-Path $cl) { Write-Output "===== jvm-classload.log ($((Get-Content $cl).Count) lines, last 40) ====="; Get-Content $cl -Tail 40 } else { Write-Output "no jvm-classload.log: the JVM never started" }
+            Get-ChildItem (Join-Path $game 'crash-reports') -Filter *.txt -ErrorAction SilentlyContinue | ForEach-Object { Write-Output "===== $($_.Name) (first 80 lines) ====="; Get-Content $_.FullName -TotalCount 80 }
+            Get-ChildItem $game -Filter 'hs_err_pid*.log' -ErrorAction SilentlyContinue | ForEach-Object { Write-Output "===== $($_.Name) (first 60 lines) ====="; Get-Content $_.FullName -TotalCount 60 }
+          } else {
+            Write-Output "no game folder at $game"
+          }
+          Get-ChildItem smoke-artifacts -Filter *.log -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Output "===== $($_.Name) (last 200 lines) ====="
+            Get-Content $_.FullName -Tail 200
+          }
 
       # Always upload: the logs are the only way to diagnose a failure.
       - name: Upload game and launcher logs

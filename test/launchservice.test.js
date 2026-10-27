@@ -150,6 +150,19 @@ test('the game process is released when it exits without Discord RPC', async () 
     assert.strictEqual(launchservice.isGameRunning(), false)
 })
 
+test('a game process that fails to start is reported, not left hanging', async () => {
+    // A bad Java path makes spawn emit 'error' (ENOENT) and never 'close'. Unhandled,
+    // it crashed the main process into an invisible error dialog and the launch hung
+    // at "Starting Minecraft" (smoke runs 40439619862, 40442872463).
+    assert.strictEqual((await launchservice.launch()).ok, true)
+    events.length = 0
+    const err = Object.assign(new Error('spawn jre\\bin\\javaw.exe ENOENT'), { code: 'ENOENT' })
+    assert.doesNotThrow(() => FakeProcessBuilder.lastChild.emit('error', err))
+    assert.strictEqual(launchservice.isGameRunning(), false)
+    assert.ok(events.some(e => e.kind === 'failure' && e.desc === 'landing.dlAsync.gameStartFailed'),
+        'the player is told the game could not start')
+})
+
 test('a player name with regex metacharacters does not break the launch', async () => {
     account.displayName = 'Mar(cus'
     assert.strictEqual((await launchservice.launch()).ok, true)

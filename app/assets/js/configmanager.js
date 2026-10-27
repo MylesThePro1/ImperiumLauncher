@@ -5,7 +5,8 @@ const path = require('path')
 
 // Loaded in the main process; the electron app object provides the same
 // userData path @electron/remote used to expose to the renderer.
-const { app } = require('electron')
+const electron = require('electron')
+const { app } = electron
 
 const logger = LoggerUtil.getLogger('ConfigManager')
 
@@ -66,9 +67,14 @@ exports.getAbsoluteMaxRAM = function(_ram){
     return Math.floor((mem-(gT16 > 0 ? (Number.parseInt(gT16/8) + (16*1073741824)/4) : mem/4))/1073741824)
 }
 
+exports._resolveSelectedRAM = resolveSelectedRAM
 function resolveSelectedRAM(ram) {
     if(ram?.recommended != null) {
-        return `${ram.recommended}M`
+        // Never default above what this PC can spare (getAbsoluteMaxRAM): on a
+        // 4 GB PC the 4 GB recommendation would starve Windows and crash the game.
+        const ceiling = exports.getAbsoluteMaxRAM(ram) * 1024
+        const floor = ram.minimum != null ? ram.minimum : 0
+        return `${Math.max(floor, Math.min(ram.recommended, ceiling))}M`
     } else {
         // Legacy behavior
         const mem = os.totalmem()
@@ -89,6 +95,8 @@ const DEFAULT_CONFIG = {
             resHeight: 720,
             fullscreen: false,
             autoConnect: true,
+            // Set by crashguard after an early crash: the next launch skips auto-connect once.
+            skipAutoConnectOnce: false,
             launchDetached: true
         },
         launcher: {
@@ -111,6 +119,107 @@ const DEFAULT_CONFIG = {
 
 let config = null
 
+// Sign-in token sealing
+
+// Stored sign-in tokens give access to the player's Minecraft and Microsoft
+// account, and token stealers read exactly this file. Each token is sealed
+// with Electron safeStorage (DPAPI on Windows, Keychain on macOS) and stored
+// as "safe:v1:<base64>". Without safeStorage the value is stored as before.
+const SEALED_PREFIX = 'safe:v1:'
+const TOKEN_PATHS = [['accessToken'], ['microsoft', 'access_token'], ['microsoft', 'refresh_token']]
+
+// safeStorage only works after the app's ready event, while the config loads
+// before it: tokens stay sealed in memory until openSealedTokens() runs.
+let tokensOpen = false
+
+function tokenVault(){
+    try {
+        const store = electron.safeStorage
+        return store != null && store.isEncryptionAvailable() ? store : null
+    } catch(_err){
+        return null
+    }
+}
+
+function eachToken(account, fn){
+    for(const tokenPath of TOKEN_PATHS){
+        let holder = account
+        for(let i = 0; i < tokenPath.length - 1 && holder != null; i++){
+            holder = holder[tokenPath[i]]
+        }
+        const key = tokenPath[tokenPath.length - 1]
+        if(holder != null && typeof holder[key] === 'string' && holder[key].length > 0){
+            fn(holder, key)
+        }
+    }
+}
+
+function isSealed(value){
+    return typeof value === 'string' && value.startsWith(SEALED_PREFIX)
+}
+
+/**
+ * A copy of the config with every stored sign-in token sealed, for writing to disk.
+ */
+function sealedForDisk(cfg){
+    const vault = tokensOpen ? tokenVault() : null
+    if(vault == null || cfg == null || cfg.authenticationDatabase == null){
+        return cfg
+    }
+    const copy = Object.assign({}, cfg, { authenticationDatabase: JSON.parse(JSON.stringify(cfg.authenticationDatabase)) })
+    for(const account of Object.values(copy.authenticationDatabase)){
+        eachToken(account, (holder, key) => {
+            if(!isSealed(holder[key])){
+                holder[key] = SEALED_PREFIX + vault.encryptString(holder[key]).toString('base64')
+            }
+        })
+    }
+    return copy
+}
+
+/**
+ * Open the sealed sign-in tokens in memory. Call once the app is ready.
+ * An account whose tokens can't be opened here (another Windows user or PC)
+ * is removed so the player is asked to sign in again.
+ *
+ * @returns {number} How many accounts were removed.
+ */
+exports.openSealedTokens = function(){
+    tokensOpen = true
+    if(config == null || config.authenticationDatabase == null){
+        return 0
+    }
+    const vault = tokenVault()
+    let removed = 0
+    for(const [uuid, account] of Object.entries(config.authenticationDatabase)){
+        let ok = true
+        eachToken(account, (holder, key) => {
+            if(!isSealed(holder[key])){
+                return
+            }
+            try {
+                if(vault == null) throw new Error('safeStorage is unavailable')
+                holder[key] = vault.decryptString(Buffer.from(holder[key].substring(SEALED_PREFIX.length), 'base64'))
+            } catch(_err){
+                ok = false
+            }
+        })
+        if(!ok){
+            delete config.authenticationDatabase[uuid]
+            if(config.selectedAccount === uuid){
+                config.selectedAccount = null
+            }
+            removed++
+        }
+    }
+    if(removed > 0){
+        logger.warn(`Removed ${removed} saved account(s) whose sign-in can't be decrypted on this PC; sign in again to add them back.`)
+    }
+    // Re-save so tokens written by an older launcher are sealed from now on.
+    exports.save()
+    return removed
+}
+
 // Persistance Utility Functions
 
 /**
@@ -120,7 +229,7 @@ exports.save = function(){
     // Write-then-rename so a crash mid-write never truncates the only copy
     // of the stored accounts.
     const tmpPath = configPath + '.tmp'
-    const data = JSON.stringify(config, null, 4)
+    const data = JSON.stringify(sealedForDisk(config), null, 4)
     fs.writeFileSync(tmpPath, data, 'UTF-8')
     try {
         fs.renameSync(tmpPath, configPath)
@@ -875,6 +984,24 @@ exports.getAutoConnect = function(def = false){
  */
 exports.setAutoConnect = function(autoConnect){
     config.settings.game.autoConnect = autoConnect
+}
+
+/**
+ * Check if the next launch must skip auto-connect (set after an early crash).
+ *
+ * @returns {boolean} Whether auto-connect is suspended for the next launch.
+ */
+exports.getSkipAutoConnectOnce = function(){
+    return config.settings.game.skipAutoConnectOnce === true
+}
+
+/**
+ * Suspend (or clear the suspension of) auto-connect for the next launch.
+ *
+ * @param {boolean} skip Whether the next launch should skip auto-connect.
+ */
+exports.setSkipAutoConnectOnce = function(skip){
+    config.settings.game.skipAutoConnectOnce = skip
 }
 
 /**

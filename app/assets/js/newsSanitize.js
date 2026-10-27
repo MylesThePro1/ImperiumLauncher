@@ -28,6 +28,10 @@
     const ALLOWED_LINK_HOSTS = [
         'romanica.net',
         'discord.gg',
+        // Social accounts linked from the landing screen.
+        'x.com',
+        'instagram.com',
+        'youtube.com',
         'github.com',
         'docs.oracle.com',
         'minecraft.net'

@@ -368,6 +368,8 @@ function createWindow() {
 /* Startup sequence formerly owned by the renderer preloader. */
 
 LauncherCore.init()
+// Stored sign-in tokens are sealed with safeStorage, which needs the app ready.
+app.on('ready', () => LauncherCore.ConfigManager.openSealedTokens())
 LauncherCore.cleanTempNatives()
 LaunchService.init(LauncherCore, BridgeIpc.emitLaunchEvent)
 BridgeIpc.register(() => win)
