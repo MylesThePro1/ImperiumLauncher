@@ -46,9 +46,33 @@ jobs:
     permissions:
       contents: read
 
+  # Hand-run path only: electron-builder won't create a release off a tag ("dist"
+  # carries --publish never and the build isn't on a tag), but it uploads into an
+  # existing one. Create the draft here, after smoke passed. (Run 40450451841 built
+  # every installer and uploaded none: "release doesn't exist and not created".)
+  draft:
+    name: Create the draft release
+    if: github.event_name == 'workflow_dispatch'
+    needs: [version, smoke]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "draft $TAG already exists"
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --target "$GITHUB_SHA" --title "Romanica Launcher ${TAG#v}" --notes "Draft: installers uploading."
+          fi
+
   publish:
     name: Publish installers
-    needs: [version, smoke]
+    needs: [version, smoke, draft]
+    # The draft job only runs on the hand-run path; skipped (tag path) is fine.
+    if: ${{ !cancelled() && needs.smoke.result == 'success' && (needs.draft.result == 'success' || needs.draft.result == 'skipped') }}
     runs-on: ${{ matrix.os }}
 
     permissions:
