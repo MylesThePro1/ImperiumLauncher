@@ -109,12 +109,25 @@ jobs:
             Write-Output "::warning::no latest.log from this run"
           }
 
-      # A failed run prints the launcher's own output into the job log, so the
-      # cause is readable without downloading the artifact.
-      - name: Show the launcher log on failure
-        if: failure()
+      # Every run prints the launcher's own output (it carries the game's stdout and
+      # stderr) and what the game left on disk, so the cause is readable without
+      # downloading the artifact.
+      - name: Show the launcher log and the game folder
+        if: always()
         shell: pwsh
         run: |
+          $game = Join-Path $env:RUNNER_TEMP 'imperium-data\instances\Romanica'
+          Write-Output "===== game folder ====="
+          if (Test-Path $game) {
+            Get-ChildItem $game -Force | Format-Table Mode, LastWriteTime, Length, Name -AutoSize | Out-String -Width 200
+            foreach ($sub in 'logs', 'crash-reports', 'config') {
+              $p = Join-Path $game $sub
+              if (Test-Path $p) { Write-Output "--- $sub"; Get-ChildItem $p -Force | Select-Object -First 40 | Format-Table Length, Name -AutoSize | Out-String -Width 200 }
+            }
+            Get-ChildItem $game -Filter 'hs_err_pid*.log' -ErrorAction SilentlyContinue | ForEach-Object { Write-Output "===== $($_.Name) (first 60 lines) ====="; Get-Content $_.FullName -TotalCount 60 }
+          } else {
+            Write-Output "no game folder at $game"
+          }
           Get-ChildItem smoke-artifacts -Filter *.log -ErrorAction SilentlyContinue | ForEach-Object {
             Write-Output "===== $($_.Name) (last 200 lines) ====="
             Get-Content $_.FullName -Tail 200
