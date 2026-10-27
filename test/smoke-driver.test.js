@@ -174,6 +174,7 @@ async function makeFixture(t, { logLines }){
     const mesaDll = path.join(workDir, 'mesa', 'opengl32.dll')
     await fs.ensureDir(path.dirname(mesaDll))
     await fs.writeFile(mesaDll, 'fake mesa dll')
+    await fs.writeFile(path.join(path.dirname(mesaDll), 'libgallium_wgl.dll'), 'fake mesa driver')
 
     const dataDir = path.join(workDir, 'data')
     const artifactsDir = path.join(workDir, 'artifacts')
@@ -236,6 +237,8 @@ test('runSmoke passes when the game log reaches the title screen', { timeout: 20
     assert.strictEqual(fixture.events.killed, 1, 'the process tree must be cleaned up')
     // Mesa was placed next to javaw.exe before the launch.
     assert.strictEqual(fs.existsSync(path.join(fixture.javaHome, 'bin', 'opengl32.dll')), true)
+    // ...with the driver it loads (opengl32.dll alone has no WGL: run 40447167447).
+    assert.strictEqual(fs.existsSync(path.join(fixture.javaHome, 'bin', 'libgallium_wgl.dll')), true)
     // The seeded config landed in the ISOLATED smoke userData — and never in the
     // profile-shaped path under APPDATA (the 2026-10-24 clobber regression).
     const uDir = path.join(os.tmpdir(), 'imperium-smoke-userdata')

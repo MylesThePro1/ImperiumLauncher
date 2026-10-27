@@ -250,9 +250,14 @@ async function runSmoke(options, deps = {}){
         if(!fs.existsSync(options.mesaDll)){
             return { ok: false, reason: `mesa dll not found at ${options.mesaDll}` }
         }
-        const dest = path.join(path.dirname(javaExec), 'opengl32.dll')
-        fs.copyFileSync(options.mesaDll, dest)
-        log(`copied mesa opengl32.dll to ${dest}`)
+        // opengl32.dll loads the real driver (libgallium_wgl.dll) from the same
+        // folder, so every DLL shipped beside it goes next to javaw.exe too.
+        const mesaDir = path.dirname(path.resolve(options.mesaDll))
+        for(const name of fs.readdirSync(mesaDir).filter(n => n.toLowerCase().endsWith('.dll'))){
+            const dest = path.join(path.dirname(javaExec), name === path.basename(options.mesaDll) ? 'opengl32.dll' : name)
+            fs.copyFileSync(path.join(mesaDir, name), dest)
+            log(`copied mesa ${name} to ${dest}`)
+        }
     }
 
     // The previous run's latest.log already holds the title-screen marker; matching it

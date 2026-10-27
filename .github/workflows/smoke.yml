@@ -24,6 +24,8 @@ env:
   # and artifact paths follow it. (Runs v0.2.0-v0.2.4 failed on the stale ImperiumMC
   # seed - the launcher exited 1 before spawning the game.)
   SERVER_ID: Romanica
+  # No GPU on the runner: Mesa's CPU renderer.
+  GALLIUM_DRIVER: llvmpipe
 
 jobs:
   windows-launch-smoke:
@@ -73,11 +75,14 @@ jobs:
           echo "$MESA_SHA256  mesa.7z" | sha256sum -c -
         shell: bash
 
-      - name: Extract opengl32.dll from the Mesa archive
+      # opengl32.dll is only a front for libgallium_wgl.dll (the actual Mesa driver).
+      # With opengl32.dll alone, LWJGL fails at boot with "There is no OpenGL context
+      # management API available" (run 40447167447's crash report).
+      - name: Extract the Mesa OpenGL driver from the archive
         run: |
-          7z e mesa.7z -omesa -y x64/opengl32.dll
-          if (-not (Test-Path mesa\opengl32.dll)) {
-            throw "x64/opengl32.dll missing from the Mesa archive"
+          7z e mesa.7z -omesa -y x64/opengl32.dll x64/libgallium_wgl.dll
+          foreach ($dll in 'opengl32.dll', 'libgallium_wgl.dll') {
+            if (-not (Test-Path "mesa\$dll")) { throw "x64/$dll missing from the Mesa archive" }
           }
 
       - name: Run the launch smoke test
