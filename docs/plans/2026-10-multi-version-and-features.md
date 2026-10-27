@@ -685,6 +685,25 @@ optimisations (6g) are separate commits with their own profiles.
 
 ### A. Unfinished now (blocks everything else)
 
+**Status 2026-10-27:**
+- 1 (CI proof), client half **fixed**: the gametest boots under SDL's offscreen
+  driver (Mesa EGL, no X server). Run 40439686175 reached OpenGL 4.5 and ran the
+  ci subset in 1m35s; the full suite is wired into `ci.yml`.
+- 1, launcher half, **root cause narrowed**: the smoke driver's fallback PASS is
+  removed (no title-screen line in this run's `latest.log` is a FAIL). Run
+  40439619862 showed the game folder holding only `forgeMods.list` after 20 min:
+  no logs, no config, no game output, so the JVM never reached Fabric. The smoke
+  run now records the JVM class-load log and samples the java process.
+- 2: 0.2.8 is in RomanicaLauncher#27, not tagged until smoke really passes.
+- 3: **merged** (RomanicaClient#38), not released: the index still pins
+  `0.2.0-beta.26`.
+- 5: plugin default **merged** (RomanicaPlugin#24); production `afk.yml` is
+  still an owner action.
+- 6: brand **done** (plain `fabric`); `imperiumclient:*` channels now stay off
+  non-Romanica servers (RomanicaClient#38). The channel rename is still 6h.
+- 7 (B): **done** in the client (DPAPI, RomanicaClient#38, Windows CI job) and
+  the launcher (`safeStorage`, RomanicaLauncher#27).
+
 1. **No proof the game actually runs from CI.** The launcher smoke test starts the
    game but no `latest.log` ever appears; the client gametest job never boots
    (GLX visual error). Nearly every "evidence" rule in AGENTS.md depends on one of
@@ -1816,7 +1835,7 @@ Fixes so players never have to do this by hand (milestone 0.3 "Stable"):
   and co.), lowers render distance and effects, no auto-connect. Which mods it
   turns off gets confirmed by the crash report and W6 tests, not guessed. Offered automatically after a crash and
   chosen by default by P1/P2 on weak hardware.
-- **W3. RAM guidance (launcher). Warning built for 0.2.8** (settings Java tab); hardware-aware defaults still to do. P1's hardware-aware RAM (6c), plus a warning
+- **W3. RAM guidance (launcher). Built for 0.2.8:** the settings Java tab warns below the recommended value, and the default is capped at what the PC can spare (3 GB on a 4 GB PC). P1's hardware-aware RAM (6c), plus a warning
   when the player sets RAM below the index's recommended value ("Romanica
   recommends 4 GB; you've set 2.5 GB").
 - **W4. Effects pack opt-in (server).** The second ~53 MB pack is cosmetic
