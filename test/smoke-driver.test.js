@@ -337,6 +337,25 @@ test('runSmoke fails when the game never writes a log, even with the natives gua
     assert.match(result.reason, /no latest\.log/)
 })
 
+test('runSmoke fails as soon as the game exits before the title screen', { timeout: 20000 }, async (t) => {
+    const fixture = await makeFixture(t, {
+        logLines: ['[main/INFO]: Loading Minecraft 26.3 with Fabric Loader 0.20.1']
+    })
+    const spawnImpl = fixture.deps.spawnImpl
+    fixture.deps.spawnImpl = (...args) => {
+        const child = spawnImpl(...args)
+        setTimeout(() => child.stdout.emit('data', Buffer.from('[ProcessBuilder]: Exited with code -1\n')), 50)
+        return child
+    }
+    fixture.options.gameTimeoutMs = 10000
+    const started = Date.now()
+    const result = await smoke.runSmoke(fixture.options, fixture.deps)
+
+    assert.strictEqual(result.ok, false, result.reason)
+    assert.match(result.reason, /exited \(code -1\) before the title screen/)
+    assert.ok(Date.now() - started < 5000, 'does not wait out the whole window')
+})
+
 test('runSmoke rejects a missing java executable before spawning anything', { timeout: 20000 }, async (t) => {
     const fixture = await makeFixture(t, { logLines: null })
     fixture.options.javaHome = path.join(fixture.workDir, 'no-java')

@@ -339,6 +339,15 @@ async function runSmoke(options, deps = {}){
         if(launcherExited != null && launcherExited !== 0){
             return finish(false, `launcher exited with code ${launcherExited} while the game was running`)
         }
+        // The launcher logs the game's exit ("Exited with code N"). A game that is
+        // gone can't reach the title screen: fail now instead of waiting out the window.
+        const exited = /Exited with code (-?\d+|null)/.exec(launcherText)
+        if(exited != null && !scanLog(gameText).passed){
+            await sleep(options.pollMs || DEFAULTS.pollMs)
+            try { fs.copyFileSync(latestLog, path.join(artifactsDir, 'latest.log')) } catch { /* absent */ }
+            sweepGameDir(gameDir, artifactsDir)
+            return finish(false, `the game exited (code ${exited[1]}) before the title screen`)
+        }
         try {
             const stat = fs.statSync(latestLog)
             if(logBaseline != null){
