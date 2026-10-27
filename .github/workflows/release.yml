@@ -3,20 +3,52 @@ name: Release
 # Tag-gated release: publish ONLY after the launch smoke passes. Before this
 # workflow existed, build.yml published on tags in parallel with smoke.yml —
 # the "release only after smoke passes" rule had no enforcement.
+#
+# Two ways in: pushing a v* tag, or running this workflow by hand on master, which
+# releases the version in package.json. The hand-run path builds into a draft
+# release, then publishes it on this exact commit once every installer uploaded.
+# (Tag pushes from the cloud agent sessions are refused by their git proxy.)
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 jobs:
+  version:
+    name: Work out the release tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$(node -p "require('./package.json').version")"
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            [ "$GITHUB_REF_NAME" = "$tag" ] || { echo "tag $GITHUB_REF_NAME does not match package.json ($tag)" >&2; exit 1; }
+          else
+            [ "$GITHUB_REF_NAME" = master ] || { echo "release by hand only from master, not $GITHUB_REF_NAME" >&2; exit 1; }
+            if gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json isDraft -q '.isDraft' 2>/dev/null | grep -q false; then
+              echo "release $tag is already published; bump the version first" >&2; exit 1
+            fi
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Releasing $tag from $GITHUB_SHA"
+
   smoke:
+    needs: version
     uses: ./.github/workflows/smoke.yml
     permissions:
       contents: read
 
   publish:
     name: Publish installers
-    needs: smoke
+    needs: [version, smoke]
     runs-on: ${{ matrix.os }}
 
     permissions:
@@ -53,3 +85,26 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run dist -- --publish always
         shell: bash
+
+  # Hand-run path only: electron-builder uploaded every installer into a draft;
+  # publish it on the exact commit that passed smoke.
+  finalize:
+    name: Publish the draft release
+    if: github.event_name == 'workflow_dispatch'
+    needs: [version, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets -q '.assets[].name'
+          for want in latest.yml "Romanica-Launcher-setup-${TAG#v}.exe" "Romanica-Launcher-setup-${TAG#v}.exe.blockmap"; do
+            gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets -q '.assets[].name' | grep -qx "$want" || { echo "missing $want" >&2; exit 1; }
+          done
+          notes=()
+          [ -f "docs/release-notes/$TAG.md" ] && notes=(--notes-file "docs/release-notes/$TAG.md")
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --target "$GITHUB_SHA" --title "Romanica Launcher ${TAG#v}" "${notes[@]}"
