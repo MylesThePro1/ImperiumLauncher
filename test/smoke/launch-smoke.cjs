@@ -94,7 +94,7 @@ function scanLog(text){
  * @param {Object} options {serverId, uuid, name, dataDir, javaExec}
  * @returns {Object} The config object to write.
  */
-function buildSmokeConfig({ serverId, uuid, name, dataDir, javaExec, ramMB = 4096 }){
+function buildSmokeConfig({ serverId, uuid, name, dataDir, javaExec, ramMB = 4096, extraJvmOptions = [] }){
     const ram = `${ramMB}M`
     return {
         settings: {
@@ -144,7 +144,8 @@ function buildSmokeConfig({ serverId, uuid, name, dataDir, javaExec, ramMB = 409
                     '-XX:G1NewSizePercent=20',
                     '-XX:G1ReservePercent=20',
                     '-XX:MaxGCPauseMillis=50',
-                    '-XX:G1HeapRegionSize=32M'
+                    '-XX:G1HeapRegionSize=32M',
+                    ...extraJvmOptions
                 ]
             }
         }
@@ -224,7 +225,13 @@ async function runSmoke(options, deps = {}){
     }
     fs.rmSync(uDir, { recursive: true, force: true })
     fs.mkdirSync(uDir, { recursive: true })
-    const config = buildSmokeConfig({ serverId, uuid, name, dataDir: options.dataDir, javaExec })
+    // The JVM's own class-load log lands in the game folder (its working
+    // directory): when the game never writes latest.log, the last loaded class
+    // shows how far it got.
+    const config = buildSmokeConfig({
+        serverId, uuid, name, dataDir: options.dataDir, javaExec,
+        extraJvmOptions: ['-Xlog:class+load=info:file=jvm-classload.log']
+    })
     fs.writeFileSync(path.join(uDir, 'config.json'), JSON.stringify(config, null, 4))
     log(`seeded config at ${path.join(uDir, 'config.json')}`)
     log(`data directory ${options.dataDir}, game dir ${gameDir}`)
@@ -323,6 +330,8 @@ async function runSmoke(options, deps = {}){
     const gameDeadline = now() + (options.gameTimeoutMs || DEFAULTS.gameTimeoutMs)
     let logOffset = 0
     let gameText = ''
+    let nextSample = now() + SAMPLE_EVERY_MS
+    const sampleGameProcess = deps.sampleGameProcess || sampleJavaProcesses
     while(now() < gameDeadline){
         if(launcherExited != null && launcherExited !== 0){
             return finish(false, `launcher exited with code ${launcherExited} while the game was running`)
@@ -360,6 +369,10 @@ async function runSmoke(options, deps = {}){
             } catch{ /* artifact copy is best effort */ }
             return finish(true, 'title screen reached')
         }
+        if(now() >= nextSample){
+            sampleGameProcess(log)
+            nextSample = now() + SAMPLE_EVERY_MS
+        }
         await sleep(options.pollMs || DEFAULTS.pollMs)
     }
     try { fs.copyFileSync(latestLog, path.join(artifactsDir, 'latest.log')) } catch { /* absent */ }
@@ -373,6 +386,23 @@ async function runSmoke(options, deps = {}){
     return finish(false, 'timed out waiting for the title-screen marker in latest.log')
 }
 
+
+const SAMPLE_EVERY_MS = 2 * 60 * 1000
+
+/* Log the running Java processes (CPU time, memory) so a silent game shows
+ * whether it is busy or stuck. Windows only; a no-op elsewhere. */
+function sampleJavaProcesses(log){
+    if(process.platform !== 'win32'){
+        return
+    }
+    try {
+        const out = require('child_process').execFileSync('tasklist',
+            ['/V', '/FO', 'CSV', '/NH', '/FI', 'IMAGENAME eq javaw.exe'], { encoding: 'utf8', timeout: 15000 })
+        log(`java processes: ${out.trim() || '(none)'}`)
+    } catch(err){
+        log(`could not list java processes: ${err.message}`)
+    }
+}
 
 /* On timeout, sweep the game dir for JVM crash artifacts (hs_err_pid*.log,
  * crash-reports/) so a runner-only failure is never diagnosed blind. */

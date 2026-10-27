@@ -124,6 +124,8 @@ jobs:
               $p = Join-Path $game $sub
               if (Test-Path $p) { Write-Output "--- $sub"; Get-ChildItem $p -Force | Select-Object -First 40 | Format-Table Length, Name -AutoSize | Out-String -Width 200 }
             }
+            $cl = Join-Path $game 'jvm-classload.log'
+            if (Test-Path $cl) { Write-Output "===== jvm-classload.log ($((Get-Content $cl).Count) lines, last 40) ====="; Get-Content $cl -Tail 40 } else { Write-Output "no jvm-classload.log: the JVM never started" }
             Get-ChildItem $game -Filter 'hs_err_pid*.log' -ErrorAction SilentlyContinue | ForEach-Object { Write-Output "===== $($_.Name) (first 60 lines) ====="; Get-Content $_.FullName -TotalCount 60 }
           } else {
             Write-Output "no game folder at $game"
