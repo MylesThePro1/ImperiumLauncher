@@ -196,7 +196,10 @@ async function runSmoke(options, deps = {}){
     const serverId = options.serverId || DEFAULTS.serverId
     const uuid = DEFAULTS.uuid
     const name = DEFAULTS.name
-    const javaExec = path.join(options.javaHome, 'bin', process.platform === 'win32' ? 'javaw.exe' : 'java')
+    // Absolute: the launcher spawns Java with the game folder as its working
+    // directory, and Windows resolves a relative executable against that, so
+    // "jre\\bin\\javaw.exe" was never found and the game never started.
+    const javaExec = path.resolve(options.javaHome, 'bin', process.platform === 'win32' ? 'javaw.exe' : 'java')
     const artifactsDir = options.artifactsDir || path.join(ROOT, '.smoke-artifacts')
     const gameDir = path.join(options.dataDir, 'instances', serverId)
     const latestLog = path.join(gameDir, 'logs', 'latest.log')
