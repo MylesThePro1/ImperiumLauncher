@@ -209,6 +209,7 @@ cancelSync = "Close"
 preparingToLaunch = "Preparing to launch.."
 launchingGame = "Launching game.."
 launchWrapperNotDownloaded = 'A game file failed to download or was blocked, so the game cannot start.<br><br>Click Launch to retry. If your antivirus quarantined the file, restore it and add an exception for the launcher data folder (shown under Settings &gt; Launcher), then launch again.<br><br>Still stuck? Ask in <a href="https://discord.gg/9qdP3Uqx3q">our Discord</a>.'
+gameStartFailed = 'Java could not be started, so the game cannot launch.<br><br>Open Settings &gt; Java and check the Java executable, or clear it so the launcher installs Java for you. Then launch again.<br><br>Still stuck? Ask in <a href="https://discord.gg/9qdP3Uqx3q">our Discord</a>.'
 doneEnjoyServer = "Done. Enjoy the server!"
 gameStarting = "Starting Minecraft.."
 gameLoadingMods = "Loading mods.."

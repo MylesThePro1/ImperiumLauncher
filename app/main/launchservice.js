@@ -523,6 +523,18 @@ async function runLaunch(login){
                 DiscordWrapper.initRPC(distro.rawDistribution.discord, serv.rawServer.discord)
                 hasRPC = true
             }
+            // spawn reports a Java executable it can't start (missing, relative to
+            // the game folder, blocked) as 'error' and never 'close'. Unhandled, that
+            // crashed the main process and the launch hung at "Starting Minecraft".
+            child.on('error', (err) => {
+                loggerLaunchSuite.error('The game process could not be started.', err)
+                stopTail()
+                clearTimeout(readyTimer)
+                if(proc === child){
+                    proc = null
+                }
+                emit({ kind: 'failure', title: L('landing.dlAsync.errorDuringLaunchTitle'), desc: L('landing.dlAsync.gameStartFailed') })
+            })
             child.on('close', (code, _signal) => {
                 if(CrashGuard.recordExit(core.ConfigManager, code, Date.now() - startedAt)){
                     loggerLaunchSuite.warn(`Game exited with code ${code} shortly after launch; the next launch will open the menus instead of auto-connecting.`)
