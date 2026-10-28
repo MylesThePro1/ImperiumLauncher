@@ -220,6 +220,35 @@ check('openExternal IPC handler validates the URL',
     'the OPEN_EXTERNAL handler must gate on isAllowedLink')
 
 /* ------------------------------------------------------------------ */
+/* Old-org URL audit                                                   */
+/* ------------------------------------------------------------------ */
+
+// The GitHub org renamed (Imperium-MC -> Romanica-MC) and upstream's
+// wiki must never be shown to players. Nothing shipped may link players
+// at the old org or at dscalzi's HeliosLauncher repo; support goes to
+// Discord. This audit fails on reintroduction of any of those URLs.
+const OLD_ORG_MARKERS = [
+    'github.com/Imperium-MC',
+    'github.com/dscalzi'
+]
+
+const auditedUrlFiles = [
+    'package.json',
+    'dev-app-update.yml',
+    'app/assets/lang/_custom.toml',
+    'app/assets/lang/en_US.toml',
+    'app/assets/js/scripts/settings.js',
+    'app/assets/js/scripts/uicore.js'
+]
+for(const rel of auditedUrlFiles){
+    const body = read(rel)
+    for(const marker of OLD_ORG_MARKERS){
+        check(`${rel} free of old-org URL "${marker}"`, !body.includes(marker),
+            `${rel} still references ${marker}`)
+    }
+}
+
+/* ------------------------------------------------------------------ */
 /* Report                                                              */
 /* ------------------------------------------------------------------ */
 
