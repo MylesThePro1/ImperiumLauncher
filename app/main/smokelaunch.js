@@ -9,11 +9,16 @@
  * this process with the offline account the driver pre-seeded into
  * config.json. The driver owns the verdict: it watches the game's
  * logs/latest.log for the title-screen markers and kills the process
- * tree. This module only reports progress on stdout and exits non-zero
- * if the pipeline fails before the game is spawned.
+ * tree. This module only reports progress through the SmokeLaunch logger
+ * and exits non-zero if the pipeline fails before the game is spawned.
+ * The driver greps the raw `[SMOKE] ...` markers out of the process
+ * output, so every message below must keep that prefix verbatim.
  */
+const { LoggerUtil } = require('helios-core')
+
 const SMOKE_NAME = 'SmokeTest'
 const SMOKE_UUID = '00000000-0000-0000-0000-000000000000'
+const loggerSmoke = LoggerUtil.getLogger('SmokeLaunch')
 
 /**
  * Run the launch pipeline headlessly.
@@ -23,16 +28,16 @@ const SMOKE_UUID = '00000000-0000-0000-0000-000000000000'
  */
 exports.run = async function(core, launchservice){
     const { app } = require('electron')
-    console.log('[SMOKE] headless smoke launch starting')
+    loggerSmoke.info('[SMOKE] headless smoke launch starting')
     // No window in smoke mode, so print the launch events the progress bar would show:
     // the run log then records exactly what a player sees, step by step.
     launchservice.init(core, (event) => {
         if(event.kind === 'progress' || event.kind === 'downloadProgress'){
-            console.log(`[SMOKE] progress ${event.percent}%`)
+            loggerSmoke.info(`[SMOKE] progress ${event.percent}%`)
         } else if(event.kind === 'details'){
-            console.log(`[SMOKE] status ${event.text}`)
+            loggerSmoke.info(`[SMOKE] status ${event.text}`)
         } else if(event.kind === 'gameLaunched'){
-            console.log('[SMOKE] launcher marked the game ready')
+            loggerSmoke.info('[SMOKE] launcher marked the game ready')
         }
     })
     try {
@@ -41,7 +46,7 @@ exports.run = async function(core, launchservice){
             throw new Error('distribution index unavailable')
         }
         core.syncConfigurationWithDistribution(data)
-        console.log(`[SMOKE] distribution ready (${data.servers.length} servers, selected ${core.ConfigManager.getSelectedServer()})`)
+        loggerSmoke.info(`[SMOKE] distribution ready (${data.servers.length} servers, selected ${core.ConfigManager.getSelectedServer()})`)
 
         // Re-assert the offline account right before the launch so a stale
         // or hand-edited config cannot leave the pipeline without one.
@@ -53,15 +58,15 @@ exports.run = async function(core, launchservice){
 
         const result = await launchservice.launch(true)
         if(result.ok){
-            console.log('[SMOKE] game spawned')
+            loggerSmoke.info('[SMOKE] game spawned')
             // The driver takes over from here (log scan, timeout, cleanup);
             // the game process must keep this process as its parent.
             return
         }
-        console.error('[SMOKE] launch pipeline reported failure')
+        loggerSmoke.error('[SMOKE] launch pipeline reported failure')
         app.exit(1)
     } catch(err){
-        console.error('[SMOKE] launch failed:', err)
+        loggerSmoke.error('[SMOKE] launch failed:', err)
         app.exit(1)
     }
 }

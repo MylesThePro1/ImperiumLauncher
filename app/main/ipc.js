@@ -600,6 +600,9 @@ exports.register = function(winProvider){
     })
 
     /* logging */
+    // Raw console here on purpose: this handler IS the log transport —
+    // the sink the renderer's LoggerUtil forwards into. Routing it back
+    // through a logger would recurse on itself.
     ipcMain.handle(BRIDGE.LOG, (_e, name, level, parts) => {
         if(boundedString(name, 128) && boundedString(level, 16) && Array.isArray(parts)){
             const args = parts.slice(0, 16).map(p => {

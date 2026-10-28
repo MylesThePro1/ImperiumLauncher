@@ -14,6 +14,9 @@ const isDev = Imperium.env.isDev
 /* ------------------------------------------------------------------ */
 /* Logging                                                            */
 /* ------------------------------------------------------------------ */
+// Raw console here on purpose: this IS the renderer's LoggerUtil. Its
+// job is to echo into the DevTools console and forward over IPC to the
+// main-process sink (ipc.js BRIDGE.LOG); it must not log through itself.
 
 const LoggerUtil = {
     getLogger(name){

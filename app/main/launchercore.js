@@ -9,6 +9,7 @@
  */
 const { app } = require('electron')
 const fs   = require('fs-extra')
+const { LoggerUtil } = require('helios-core')
 const os   = require('os')
 const path = require('path')
 
@@ -17,6 +18,8 @@ const { DistroAPI }  = require('../assets/js/distromanager')
 const LangLoader     = require('../assets/js/langloader')
 const isDev          = require('../assets/js/isdev')
 const { Type }       = require('helios-distribution-types')
+
+const loggerLauncherCore = LoggerUtil.getLogger('LauncherCore')
 
 let initialized = false
 
@@ -44,7 +47,7 @@ exports.init = function(){
 exports.cleanTempNatives = function(){
     fs.remove(path.join(os.tmpdir(), ConfigManager.getTempNativeFolder()), (err) => {
         if(err){
-            console.warn('[LauncherCore] Error while cleaning natives directory', err)
+            loggerLauncherCore.warn('Error while cleaning natives directory', err)
         }
     })
 }
@@ -59,7 +62,7 @@ exports.loadDistribution = async function(){
     const data = await DistroAPI.getDistribution()
     if(data != null){
         if(ConfigManager.getSelectedServer() == null || data.getServerById(ConfigManager.getSelectedServer()) == null){
-            console.log('[LauncherCore] Determining default selected server..')
+            loggerLauncherCore.info('Determining default selected server..')
             ConfigManager.setSelectedServer(data.getMainServer().rawServer.id)
             ConfigManager.save()
         }

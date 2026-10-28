@@ -173,16 +173,35 @@ test('init resolves appData/userData from the electron app and delegates to migr
         }
     })
 
+    // Seed the module cache with a helios-core stub so the lazy require
+    // inside init() routes the migration log into our capture. Same
+    // technique as the electron stub above.
+    const heliosCorePath = require.resolve('helios-core')
+    const previousHelios = require.cache[heliosCorePath]
     const messages = []
-    const originalLog = console.log
-    console.log = (msg) => messages.push(msg)
-    try {
-        migration.init()
-    } finally {
-        console.log = originalLog
+    require.cache[heliosCorePath] = {
+        id: heliosCorePath,
+        filename: heliosCorePath,
+        loaded: true,
+        exports: {
+            LoggerUtil: {
+                getLogger: (name) => ({
+                    info: (msg) => messages.push(`[${name}] ${msg}`)
+                })
+            }
+        }
     }
+    t.after(() => {
+        if(previousHelios != null){
+            require.cache[heliosCorePath] = previousHelios
+        } else {
+            delete require.cache[heliosCorePath]
+        }
+    })
+
+    migration.init()
 
     assert.strictEqual(fs.existsSync(path.join(appData, 'Romanica Launcher', 'config.json')), true,
         'init must run the real migration against the stubbed paths')
-    assert.ok(messages.some((m) => m.includes('[UserDataMigration]')), 'init logs the migration result')
+    assert.ok(messages.some((m) => m.includes('[UserDataMigration]')), 'init logs the migration result through LoggerUtil')
 })

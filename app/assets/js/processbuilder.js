@@ -96,11 +96,11 @@ class ProcessBuilder {
         child.stderr.setEncoding('utf8')
 
         child.stdout.on('data', (data) => {
-            data.trim().split('\n').forEach(x => console.log(`\x1b[32m[Minecraft]\x1b[0m ${x}`))
-            
+            data.trim().split('\n').forEach(x => logger.info(`[Minecraft] ${x}`))
+
         })
         child.stderr.on('data', (data) => {
-            data.trim().split('\n').forEach(x => console.log(`\x1b[31m[Minecraft]\x1b[0m ${x}`))
+            data.trim().split('\n').forEach(x => logger.error(`[Minecraft] ${x}`))
         })
         child.on('close', (code) => {
             logger.info('Exited with code', code)
@@ -148,11 +148,11 @@ class ProcessBuilder {
             throw new Error('[SMOKE] no -Djava.library.path in the JVM arguments')
         }
         const libraryPath = libraryPathArg.substring('-Djava.library.path='.length)
-        console.log(`[SMOKE] java.library.path=${libraryPath}`)
+        logger.info(`[SMOKE] java.library.path=${libraryPath}`)
         if(!fs.existsSync(path.join(libraryPath, 'lwjgl.dll'))){
             throw new Error(`[SMOKE] lwjgl.dll missing from java.library.path ${libraryPath} (issue #4 regression)`)
         }
-        console.log('[SMOKE] lwjgl.dll present in the resolved natives folder')
+        logger.info('[SMOKE] lwjgl.dll present in the resolved natives folder')
     }
 
     /**

@@ -368,7 +368,7 @@ Imperium.onMsftReplyLogin((...arguments_) => {
     if (arguments_[0] === MSFT_REPLY_TYPE.ERROR) {
 
         const viewOnClose = arguments_[2]
-        console.log(arguments_)
+        msftLoginLogger.info('Microsoft login reply.', arguments_)
         switchView(getCurrentView(), viewOnClose, 500, 500, () => {
 
             if(arguments_[1] === MSFT_ERROR.NOT_FINISHED) {
@@ -399,10 +399,7 @@ Imperium.onMsftReplyLogin((...arguments_) => {
                 // This is probably if you messed up the app registration with Azure.
                 let error = queryMap.error // Error might be 'access_denied' ?
                 let errorDesc = queryMap.error_description
-                console.log('Error getting authCode, is Azure application registered correctly?')
-                console.log(error)
-                console.log(errorDesc)
-                console.log('Full query map: ', queryMap)
+                msftLoginLogger.error('Error getting authCode, is Azure application registered correctly?', error, errorDesc, 'Full query map:', queryMap)
                 setOverlayContent(
                     error,
                     errorDesc,

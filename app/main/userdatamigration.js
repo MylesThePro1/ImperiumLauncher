@@ -50,7 +50,7 @@ const CARRY_OVER_FILES = [
  * @param {Function} [options.existsSync] defaults to fs.existsSync
  * @param {Function} [options.copyFileSync] defaults to fs.copyFileSync
  * @param {Function} [options.mkdirSync] defaults to fs.mkdirSync
- * @param {Function} [options.log] defaults to console.log
+ * @param {Function} [options.log] defaults to a LoggerUtil logger (injected in init)
  * @returns {{migrated: boolean, reason: string, copied: string[], legacyDir: string, targetDir: string}}
  */
 exports.migrate = function({
@@ -127,9 +127,13 @@ exports.init = function(){
     // Required lazily so this module stays loadable under plain node in
     // the test suite (the same electron-stub technique used elsewhere).
     const { app } = require('electron')
+    // Lazy too: the top level stays dependency-free for the plain-node
+    // tests, while the runtime log rides the LoggerUtil pipeline.
+    const { LoggerUtil } = require('helios-core')
+    const logger = LoggerUtil.getLogger('UserDataMigration')
     exports.migrate({
         appData: app.getPath('appData'),
         userData: app.getPath('userData'),
-        log: (msg) => console.log(msg)
+        log: (msg) => logger.info(msg)
     })
 }

@@ -16,7 +16,9 @@ window.eval = function () {
     throw new Error('Sorry, this app does not support window.eval().')
 }
 
-// Display warning when devtools window is opened.
+// Display warning when devtools window is opened. Raw console.log on
+// purpose: the %c styling only renders in the DevTools console this
+// targets, and a LoggerUtil line would also forward into the main log.
 Imperium.onDevtoolsOpened(() => {
     console.log('%cThe console is dark and full of terrors.', 'color: white; -webkit-text-stroke: 4px #a02d2a; font-size: 60px; font-weight: bold')
     console.log('%cIf you\'ve been told to paste something here, you\'re being scammed.', 'font-size: 16px')

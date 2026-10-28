@@ -464,12 +464,12 @@ class ImperiumRepair {
         this.receiver.stdio[1].setEncoding('utf8')
         this.receiver.stdio[1].on('data', (data) => {
             `${data}`.trim().split('\n')
-                .forEach(line => console.log(`\x1b[32m[_]\x1b[0m ${line}`))
+                .forEach(line => log.info(`[_] ${line}`))
         })
         this.receiver.stdio[2].setEncoding('utf8')
         this.receiver.stdio[2].on('data', (data) => {
             `${data}`.trim().split('\n')
-                .forEach(line => console.log(`\x1b[31m[_]\x1b[0m ${line}`))
+                .forEach(line => log.error(`[_] ${line}`))
         })
     }
 
