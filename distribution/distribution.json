@@ -542,7 +542,7 @@
                     "type": "FabricMod",
                     "required": {
                         "value": false,
-                        "def": true
+                        "def": false
                     },
                     "artifact": {
                         "size": 665386,

@@ -69,10 +69,10 @@ const QUALITY_MODS = [
 ];
 
 const VISUAL_MODS = [
-  // entitytexturefeatures moved to HIGH_DETAIL_MODS (issue #15): it reads
-  // the EFFECTS pack's OptiFine features and sits behind the launcher's
-  // "High-detail textures" toggle, off by default.
-  'entity-model-features', // custom entity models from the pack
+  // entitytexturefeatures + entity-model-features moved to HIGH_DETAIL_MODS
+  // (issue #15): they read the EFFECTS pack's OptiFine features and sit
+  // behind the launcher's "High-detail textures" toggle, off by default.
+  // EMF hard-depends on ETF, so the pair moves together.
   'iris',                  // shader support + renderer-layer optimizations
 ];
 
@@ -87,6 +87,7 @@ const VISUAL_MODS = [
 //     add here + to highdetail.js when one exists.
 const HIGH_DETAIL_MODS = [
   'entitytexturefeatures',       // random/varied mob textures
+  'entity-model-features',       // custom mob models (requires ETF)
   'polytone',                    // colormaps + custom fonts
   'skyboxify',                   // custom sky
   'yet-another-config-lib',      // config lib skyboxify depends on

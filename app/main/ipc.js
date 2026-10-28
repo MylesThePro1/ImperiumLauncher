@@ -192,8 +192,9 @@ const CONFIG_OPS = {
         validate: (a) => a.length === 1 && typeof a[0] === 'boolean'
     },
     // Issue #15: the High-detail textures master switch. Besides the flag
-    // itself it re-aligns the stored per-mod toggles of the feature mods,
-    // so the Mods tab reflects what the switch decided at next launch.
+    // itself it re-aligns the stored per-mod toggles of the feature mods
+    // (ETF + its hard-dependent EMF, PolyTone, Skyboxify, YACL), so the
+    // Mods tab reflects what the switch decided at next launch.
     setHighDetailTextures: {
         fn: (a) => {
             ConfigManager.setHighDetailTextures(a[0])

@@ -53,17 +53,21 @@ test('the high-detail toggle set and the distribution index agree exactly', () =
             continue
         }
         const versionless = module_.id.split(':').slice(0, 2).join(':')
-        if(path.basename(module_.artifact.url).match(/entitytexturefeatures|polytone|skyboxify|yet_another_config_lib/)){
+        if(path.basename(module_.artifact.url).match(/entitytexturefeatures|entity_model_features|polytone|skyboxify|yet_another_config_lib/)){
             assert.ok(toggled.has(versionless),
                 `${versionless} ships def:false but is missing from highdetail.js HIGH_DETAIL_MOD_IDS`)
         }
     }
 })
 
-test('EMF and Iris stay outside the toggle (independent defaults)', () => {
+test('EMF follows ETF (hard loader dependency) and Iris keeps its default', () => {
     const emf = byVersionless.get('com.modrinth:entity-model-features')
     const iris = byVersionless.get('com.modrinth:iris')
-    assert.ok(emf != null && emf.required.def === true, 'EMF keeps its current default')
+    // Smoke run 40662809626: EMF 3.3.12 hard-depends on ETF >=7.2, so
+    // EMF must be excluded together with ETF when the toggle is off,
+    // else Fabric mod resolution fails and the game never starts.
+    assert.ok(emf != null && emf.required.def === false, 'EMF ships with the high-detail layer (default off)')
+    assert.ok(HighDetail.HIGH_DETAIL_MOD_IDS.includes('com.modrinth:entity-model-features'))
     assert.ok(iris != null && iris.required.def === true, 'Iris keeps its current default')
 })
 

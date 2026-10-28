@@ -34,6 +34,11 @@
  * test/distro-packs.test.js fails if the two drift apart.
  *
  *   entitytexturefeatures  random/varied mob textures
+ *   entity-model-features  custom mob models; EMF hard-depends on ETF at
+ *                          the loader level (smoke run 40662809626: EMF
+ *                          on + ETF force-excluded = mod resolution
+ *                          failure, game never reached the title screen),
+ *                          so the pair lives or dies with the toggle
  *   polytone               colormaps + custom fonts
  *   skyboxify              custom sky
  *   yet-another-config-lib config lib skyboxify depends on
@@ -43,11 +48,10 @@
  *               play; do not re-add without an in-game check.
  *   animatica   animated textures reader — no 26.3 Modrinth build to pin
  *               yet; add it here (and to the distro) when one exists.
- *   entity-model-features  custom entity models — the EFFECTS pack has
- *               none; ships independently of this toggle.
  */
 exports.HIGH_DETAIL_MOD_IDS = [
     'com.modrinth:entitytexturefeatures',
+    'com.modrinth:entity-model-features',
     'com.modrinth:polytone',
     'com.modrinth:skyboxify',
     'com.modrinth:yet-another-config-lib'

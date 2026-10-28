@@ -51,6 +51,7 @@ function resolve(modules, modCfg, highDetail){
 test('master switch OFF keeps the feature mods out of the launch mod list', () => {
     const modules = [
         fabricMod('com.modrinth:entitytexturefeatures:7.2.6-fabric-26.3'),
+        fabricMod('com.modrinth:entity-model-features:3.3.12-fabric-26.3'),
         fabricMod('com.modrinth:polytone:26.3-6.8.6'),
         fabricMod('com.modrinth:sodium:mc26.3-0.9.3-beta.1-fabric')
     ]
@@ -58,12 +59,15 @@ test('master switch OFF keeps the feature mods out of the launch mod list', () =
     // feature became opt-in), the switch-off state must exclude them.
     const modCfg = {
         'com.modrinth:entitytexturefeatures': true,
+        'com.modrinth:entity-model-features': true,
         'com.modrinth:polytone': true,
         'com.modrinth:sodium': true
     }
     const { fMods } = resolve(modules, modCfg, false)
     const ids = fMods.map(m => m.rawModule.id)
     assert.ok(!ids.some(id => id.startsWith('com.modrinth:entitytexturefeatures')), 'ETF must be excluded when High-detail is off')
+    assert.ok(!ids.some(id => id.startsWith('com.modrinth:entity-model-features')),
+        'EMF must be excluded together with ETF (it hard-depends on ETF: smoke run 40662809626)')
     assert.ok(!ids.some(id => id.startsWith('com.modrinth:polytone')), 'PolyTone must be excluded when High-detail is off')
     assert.ok(ids.some(id => id.startsWith('com.modrinth:sodium')), 'non-feature mods are unaffected by the switch')
 })

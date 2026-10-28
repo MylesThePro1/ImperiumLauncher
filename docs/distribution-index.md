@@ -35,7 +35,7 @@ If the index can't be downloaded, the launcher falls back to its last cached cop
 }
 ```
 
-`rss` and `discord` are optional. Without `rss` the news panel stays empty, and without `discord` Rich Presence is off.
+`rss` and `discord` are optional. Without `rss` the news panel stays empty, and without `discord` Rich Presence is off. The `clientId` is the Discord application id of the Romanica bot (`DISCORD_APP_ID` in the imperium-discord worker's secrets — never committed). The shipped `REPLACE_WITH_BOT_CLIENT_ID` placeholder makes `login()` fail and Rich Presence stay silently off until a real id is wired.
 
 ### Server object
 
