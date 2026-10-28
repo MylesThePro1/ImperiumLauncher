@@ -69,11 +69,51 @@ const QUALITY_MODS = [
 ];
 
 const VISUAL_MODS = [
-  // continuity REMOVED (owner directive 2026-10-25): it breaks the Romanica
-  // pack's textures in play. Do not re-add without an in-game check on the pack.
-  'entitytexturefeatures', // random/emissive entity variants (148 entity textures in-pack)
+  // entitytexturefeatures moved to HIGH_DETAIL_MODS (issue #15): it reads
+  // the EFFECTS pack's OptiFine features and sits behind the launcher's
+  // "High-detail textures" toggle, off by default.
   'entity-model-features', // custom entity models from the pack
   'iris',                  // shader support + renderer-layer optimizations
+];
+
+// Issue #15 "High-detail textures" feature set: the mods that read the
+// EFFECTS pack's OptiFine-style features. Emitted with def: false — off
+// by default (memory/FPS cost) and controlled by the launcher's
+// "High-detail textures" setting. Keep in sync with
+// app/assets/js/highdetail.js (test/distro-packs.test.js enforces it).
+//   continuity: owner directive 2026-10-25 — breaks the pack's textures
+//     in play; do not re-add without an in-game check.
+//   animatica: no 26.3 Modrinth build to pin yet (checked 2026-10-28);
+//     add here + to highdetail.js when one exists.
+const HIGH_DETAIL_MODS = [
+  'entitytexturefeatures',       // random/varied mob textures
+  'polytone',                    // colormaps + custom fonts
+  'skyboxify',                   // custom sky
+  'yet-another-config-lib',      // config lib skyboxify depends on
+];
+
+// Issue #15: the texture pack ships as managed File modules landing in the
+// instance's resourcepacks/ folder. BASE is required (it is the pack the
+// server pushes on join); EFFECTS is the opt-in high-detail layer. File
+// names stay identical to the release assets so players can match them.
+// The EFFECTS zip currently declares min/max_format 88 (incompatible with
+// 26.3's format 97) — re-point these URLs when the packs repo cuts a
+// 26.3-compatible release (issue #15, packs-repo work item).
+const RESOURCE_PACKS = [
+  {
+    id: 'net.romanica:texture-pack-base:2.0.9',
+    name: 'Romanica Textures v2.0.9 (BASE)',
+    file: 'Romanica_TexturePack_v2.0.9_26.2_BASE.zip',
+    url: 'https://github.com/Romanica-MC/romanica-resourcepack/releases/download/v2.0.9/Romanica_TexturePack_v2.0.9_26.2_BASE.zip',
+    required: { value: true, def: true },
+  },
+  {
+    id: 'net.romanica:texture-pack-effects:2.0.1',
+    name: 'Romanica Textures v2.0.1 (EFFECTS, high detail)',
+    file: 'MINARECRAFTORVM_v2.0.1_26.2_EFFECTS.zip',
+    url: 'https://github.com/Romanica-MC/romanica-resourcepack/releases/download/textures/MINARECRAFTORVM_v2.0.1_26.2_EFFECTS.zip',
+    required: { value: false, def: false },
+  },
 ];
 
 // Performance round 3 (owner asked for more perf). c2me/scalablelux ship alphas
@@ -241,7 +281,7 @@ function slugify(input) {
     .replace(/^-+|-+$/g, '');
 }
 
-async function modrinthModule(slug) {
+async function modrinthModule(slug, def = true) {
   const versions = await fetchJson(
     `https://api.modrinth.com/v2/project/${slug}/version?game_versions=${encodeURIComponent(
       JSON.stringify([MC_VERSION])
@@ -260,23 +300,22 @@ async function modrinthModule(slug) {
     id: `com.modrinth:${slugify(slug) || slugify(version.id)}:${versionNumber}`,
     name: version.name || slug,
     type: 'FabricMod',
-    required: { value: false, def: true },
+    required: { value: false, def },
     artifact: artifact(file.url, hashed.md5, hashed.size, hashed.sha256),
   };
 }
 
 async function latestClientVersion() {
-  const res = await fetch('https://api.github.com/repos/Romanica-MC/ImperiumClient/releases/latest', { headers: UA });
-  if (!res.ok) throw new Error('cannot resolve latest Imperium Client release');
+  const res = await fetch('https://api.github.com/repos/Romanica-MC/RomanicaClient/releases/latest', { headers: UA });
+  if (!res.ok) throw new Error('cannot resolve latest Romanica Client release');
   const tag = (await res.json()).tag_name || '';
   if (!tag.startsWith('v')) throw new Error(`unexpected latest tag ${tag}`);
   return tag.slice(1);
 }
 
 async function imperiumClientModule(localJarPath, versionOverride) {
-  // ROMANICA CUTOVER: the client module id/name/release URL follow the
-  // ImperiumClient repository and stay Imperium-branded until that repo
-  // renames in the org-rename phase.
+  // The client repo renamed ImperiumClient -> RomanicaClient in the
+  // Romanica-MC org; releases live under the new name now.
   // The client release version is independent of the launcher's own version:
   // --client-version pins it explicitly; otherwise the latest published
   // release resolves. --client hashes a locally built jar so the index is
@@ -285,8 +324,8 @@ async function imperiumClientModule(localJarPath, versionOverride) {
   // v0.2.0-beta.10+ renamed the release asset to RomanicaClient; older tags shipped
   // ImperiumClient. Resolve whichever exists (HEAD probe, HEAD may lie about size but
   // 200-vs-404 is reliable).
-  const romanicaUrl = `https://github.com/Romanica-MC/ImperiumClient/releases/download/v${VERSION}/RomanicaClient-${VERSION}%2B${MC_VERSION}.jar`;
-  const legacyUrl = `https://github.com/Romanica-MC/ImperiumClient/releases/download/v${VERSION}/ImperiumClient-${VERSION}%2B${MC_VERSION}.jar`;
+  const romanicaUrl = `https://github.com/Romanica-MC/RomanicaClient/releases/download/v${VERSION}/RomanicaClient-${VERSION}%2B${MC_VERSION}.jar`;
+  const legacyUrl = `https://github.com/Romanica-MC/RomanicaClient/releases/download/v${VERSION}/ImperiumClient-${VERSION}%2B${MC_VERSION}.jar`;
   const headOk = await fetch(romanicaUrl, { method: 'HEAD', headers: UA }).then(r => r.ok).catch(() => false);
   const releaseUrl = headOk ? romanicaUrl : legacyUrl;
   let hash, size, sha256;
@@ -385,6 +424,16 @@ async function main() {
     }
   }
 
+  console.log('Resolving high-detail feature pack (def: false) ...');
+  for (const slug of HIGH_DETAIL_MODS) {
+    try {
+      perf.push(await modrinthModule(slug, false));
+      console.log(`  ${slug} ok`);
+    } catch (e) {
+      console.log(`  ${slug} SKIPPED: ${e.message}`);
+    }
+  }
+
   console.log('Resolving vendored mods ...');
   const DISTRO_RAW = 'https://raw.githubusercontent.com/Romanica-MC/RomanicaLauncher/master/distribution';
   for (const v of VENDORED_MODS) {
@@ -403,9 +452,37 @@ async function main() {
     });
   }
 
+  console.log('Resolving resource packs ...');
+  // File modules with an explicit artifact.path land at
+  // <instance>/<serverId>/<path> — i.e. the instance's resourcepacks/
+  // folder the game scans. packpreferences.js manages their options.txt
+  // entries at launch (issue #15). Hashed through the shared caching
+  // downloader like every other artifact.
+  const resourcePackModules = [];
+  for (const p of RESOURCE_PACKS) {
+    const h = await hashArtifact(p.url);
+    resourcePackModules.push({
+      id: p.id,
+      name: p.name,
+      type: 'File',
+      required: p.required,
+      artifact: {
+        path: `resourcepacks/${p.file}`,
+        size: h.size,
+        MD5: h.md5,
+        sha256: h.sha256,
+        url: p.url,
+      },
+    });
+  }
+
   const index = {
     version: '1.0.0',
     rss: 'https://romanica.net/news.rss',
+    // The Rich Presence application id is the Discord bot's application id
+    // (DISCORD_APP_ID in the imperium-discord worker's secrets — never
+    // committed). Until a real id lands here, initRPC fails to log in and
+    // Rich Presence stays silently off; nothing else reads this value.
     discord: {
       clientId: 'REPLACE_WITH_BOT_CLIENT_ID',
       smallImageText: 'Romanica',
@@ -428,7 +505,7 @@ async function main() {
           suggestedMajor: 25,
           ram: { recommended: 4096, minimum: 2048 },
         },
-        modules: [fabric, client, flk, fabricApi, ...perf],
+        modules: [fabric, client, flk, fabricApi, ...perf, ...resourcePackModules],
       },
     ],
   };

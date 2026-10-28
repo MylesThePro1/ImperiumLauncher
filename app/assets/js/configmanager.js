@@ -97,7 +97,14 @@ const DEFAULT_CONFIG = {
             autoConnect: true,
             // Set by crashguard after an early crash: the next launch skips auto-connect once.
             skipAutoConnectOnce: false,
-            launchDetached: true
+            launchDetached: true,
+            // Issue #15: OptiFine-feature mods + EFFECTS pack layer, off by
+            // default because of the memory/FPS cost. effectsPackManaged
+            // records that the resourcePacks entry in options.txt was
+            // written by the launcher, so toggle-off removes only our own
+            // write, never a pack the player enabled in-game.
+            highDetailTextures: false,
+            effectsPackManaged: false
         },
         launcher: {
             allowPrerelease: false,
@@ -1006,7 +1013,7 @@ exports.setSkipAutoConnectOnce = function(skip){
 
 /**
  * Check if the game should launch as a detached process.
- * 
+ *
  * @param {boolean} def Optional. If true, the default value will be returned.
  * @returns {boolean} Whether or not the game will launch as a detached process.
  */
@@ -1016,11 +1023,51 @@ exports.getLaunchDetached = function(def = false){
 
 /**
  * Change the status of whether or not the game should launch as a detached process.
- * 
+ *
  * @param {boolean} launchDetached Whether or not the game should launch as a detached process.
  */
 exports.setLaunchDetached = function(launchDetached){
     config.settings.game.launchDetached = launchDetached
+}
+
+/**
+ * Check if the High-detail textures layer (OptiFine-feature mods plus the
+ * EFFECTS pack) is enabled (issue #15). Off by default: it costs memory
+ * and FPS.
+ *
+ * @param {boolean} def Optional. If true, the default value will be returned.
+ * @returns {boolean} Whether High-detail textures are enabled.
+ */
+exports.getHighDetailTextures = function(def = false){
+    return !def ? config.settings.game.highDetailTextures === true : DEFAULT_CONFIG.settings.game.highDetailTextures
+}
+
+/**
+ * Change the status of the High-detail textures layer.
+ *
+ * @param {boolean} enabled Whether High-detail textures are enabled.
+ */
+exports.setHighDetailTextures = function(enabled){
+    config.settings.game.highDetailTextures = enabled === true
+}
+
+/**
+ * Check whether the EFFECTS pack entry in the instance's options.txt was
+ * written by the launcher (and so may be removed by toggle-off).
+ *
+ * @returns {boolean} Whether the launcher manages the EFFECTS entry.
+ */
+exports.getEffectsPackManaged = function(){
+    return config.settings.game.effectsPackManaged === true
+}
+
+/**
+ * Set whether the launcher manages the EFFECTS pack entry in options.txt.
+ *
+ * @param {boolean} managed Whether the launcher owns the entry.
+ */
+exports.setEffectsPackManaged = function(managed){
+    config.settings.game.effectsPackManaged = managed === true
 }
 
 // Launcher Settings

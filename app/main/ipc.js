@@ -16,6 +16,7 @@ const ConfigManager  = require('../assets/js/configmanager')
 const { DistroAPI }   = require('../assets/js/distromanager')
 const AuthManager    = require('../assets/js/authmanager')
 const DropinModUtil  = require('../assets/js/dropinmodutil')
+const HighDetail     = require('../assets/js/highdetail')
 const { MojangRestAPI, getServerStatus } = require('helios-core/mojang')
 const { RestResponseStatus } = require('helios-core/common')
 
@@ -188,6 +189,16 @@ const CONFIG_OPS = {
     },
     setLaunchDetached: {
         fn: (a) => ConfigManager.setLaunchDetached(a[0]),
+        validate: (a) => a.length === 1 && typeof a[0] === 'boolean'
+    },
+    // Issue #15: the High-detail textures master switch. Besides the flag
+    // itself it re-aligns the stored per-mod toggles of the feature mods,
+    // so the Mods tab reflects what the switch decided at next launch.
+    setHighDetailTextures: {
+        fn: (a) => {
+            ConfigManager.setHighDetailTextures(a[0])
+            HighDetail.reconcileModConfigs(ConfigManager, a[0])
+        },
         validate: (a) => a.length === 1 && typeof a[0] === 'boolean'
     },
     setAllowPrerelease: {

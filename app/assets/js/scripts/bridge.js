@@ -360,6 +360,37 @@ const ConfigManager = (function(){
             apply('setLaunchDetached', [launchDetached])
         },
 
+        getHighDetailTextures(def = false){
+            return !def ? config.settings.game.highDetailTextures === true : false
+        },
+
+        setHighDetailTextures(enabled){
+            config.settings.game.highDetailTextures = enabled === true
+            // Mirror the main process's reconciliation of the feature mods'
+            // stored toggles locally too: the settings save writes the mod
+            // configurations right after this, and a stale mirror would
+            // otherwise stomp the values the main process just set. The id
+            // list ships in the bootstrap payload (single source of truth:
+            // app/assets/js/highdetail.js).
+            const featureModIds = Array.isArray(Imperium.env.highDetailModIds) ? Imperium.env.highDetailModIds : []
+            for(const cfg of config.modConfigurations){
+                if(cfg == null || cfg.mods == null){
+                    continue
+                }
+                for(const id of featureModIds){
+                    if(cfg.mods[id] === undefined){
+                        continue
+                    }
+                    if(cfg.mods[id] != null && typeof cfg.mods[id] === 'object'){
+                        cfg.mods[id].value = enabled === true
+                    } else {
+                        cfg.mods[id] = enabled === true
+                    }
+                }
+            }
+            apply('setHighDetailTextures', [enabled === true])
+        },
+
         getAllowPrerelease(def = false){
             return !def ? config.settings.launcher.allowPrerelease : false
         },

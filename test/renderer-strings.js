@@ -235,6 +235,7 @@ const OLD_ORG_MARKERS = [
 const auditedUrlFiles = [
     'package.json',
     'dev-app-update.yml',
+    'distribution/distribution.json',
     'app/assets/lang/_custom.toml',
     'app/assets/lang/en_US.toml',
     'app/assets/js/scripts/settings.js',

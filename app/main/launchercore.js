@@ -252,7 +252,8 @@ exports.configSnapshot = function(){
                     resHeight: ConfigManager.getGameHeight(),
                     fullscreen: ConfigManager.getFullscreen(),
                     autoConnect: ConfigManager.getAutoConnect(),
-                    launchDetached: ConfigManager.getLaunchDetached()
+                    launchDetached: ConfigManager.getLaunchDetached(),
+                    highDetailTextures: ConfigManager.getHighDetailTextures()
                 },
                 launcher: {
                     allowPrerelease: ConfigManager.getAllowPrerelease(),
@@ -293,6 +294,7 @@ exports.configSnapshot = function(){
  */
 exports.bootstrap = function(){
     const snapshot = exports.configSnapshot()
+    const HighDetail = require('../assets/js/highdetail')
     return {
         isDev,
         version: app.getVersion(),
@@ -304,6 +306,7 @@ exports.bootstrap = function(){
         defaults: snapshot.defaults,
         dirs: snapshot.dirs,
         mem: snapshot.mem,
+        highDetailModIds: HighDetail.HIGH_DETAIL_MOD_IDS,
         types: {
             Library: Type.Library,
             ForgeHosted: Type.ForgeHosted,

@@ -10,6 +10,8 @@ const path                  = require('path')
 
 const ConfigManager            = require('./configmanager')
 const CrashGuard               = require('../../main/crashguard')
+const HighDetail               = require('./highdetail')
+const PackPreferences          = require('./packpreferences')
 
 const logger = LoggerUtil.getLogger('ProcessBuilder')
 
@@ -53,7 +55,14 @@ class ProcessBuilder {
         logger.info('Using liteloader:', this.usingLiteLoader)
         this.usingFabricLoader = this.server.modules.some(mdl => mdl.rawModule.type === Type.Fabric)
         logger.info('Using fabric loader:', this.usingFabricLoader)
-        const modObj = this.resolveModConfiguration(ConfigManager.getModConfiguration(this.server.rawServer.id).mods, this.server.modules)
+
+        // Issue #15: sync the instance's options.txt resourcePacks entries
+        // with the BASE pack (first install only) and the EFFECTS layer
+        // (while High-detail textures is on). The pack files themselves are
+        // already hash-verified on disk by the sync above. Never fatal.
+        this.applyResourcePackPreferences()
+
+        const modObj = this.resolveLaunchMods()
         
         // Mod list below 1.13
         // Fabric only supports 1.14+
@@ -214,15 +223,73 @@ class ProcessBuilder {
     }
 
     /**
+     * The launch path's mod resolution: the stored per-server mod toggles
+     * plus the High-detail textures master switch (issue #15). Kept as its
+     * own method so the exact call build() makes is unit-testable.
+     *
+     * @returns {{fMods: Array.<Object>, lMods: Array.<Object>}} Enabled mods.
+     */
+    resolveLaunchMods(){
+        return this.resolveModConfiguration(
+            ConfigManager.getModConfiguration(this.server.rawServer.id).mods,
+            this.server.modules,
+            ConfigManager.getHighDetailTextures()
+        )
+    }
+
+    /**
+     * Sync the instance's options.txt resourcePacks entries with the
+     * distribution's resource packs and the High-detail textures setting
+     * (issue #15). The BASE pack is enabled on first install only, the
+     * EFFECTS pack is added above it while the setting is on and removed
+     * on toggle-off — but only when the launcher itself wrote it.
+     *
+     * All failures are logged and skipped: a preference write must never
+     * take the launch down with it.
+     */
+    applyResourcePackPreferences(){
+        try {
+            const baseModule = this.server.modules.find(mdl => String(mdl.rawModule.id).startsWith(HighDetail.BASE_PACK_MODULE_PREFIX))
+            if(baseModule == null){
+                return // distribution ships no pack modules; nothing to manage
+            }
+            const effectsModule = this.server.modules.find(mdl => String(mdl.rawModule.id).startsWith(HighDetail.EFFECTS_PACK_MODULE_PREFIX))
+            const result = PackPreferences.applyPackOptions(this.gameDir, {
+                baseFile: path.basename(baseModule.rawModule.artifact.path),
+                effectsFile: effectsModule != null ? path.basename(effectsModule.rawModule.artifact.path) : null,
+                highDetail: ConfigManager.getHighDetailTextures(),
+                effectsManaged: ConfigManager.getEffectsPackManaged()
+            })
+            if(result.wrote){
+                logger.info(`Resource pack preferences applied to options.txt (base added: ${result.addBase}, effects added: ${result.addEffects}, effects removed: ${result.removeEffects}).`)
+            }
+            // Track ownership of the EFFECTS entry so a later toggle-off
+            // removes only what the launcher wrote.
+            if(result.addEffects && !ConfigManager.getEffectsPackManaged()){
+                ConfigManager.setEffectsPackManaged(true)
+                ConfigManager.save()
+            } else if(result.removeEffects && ConfigManager.getEffectsPackManaged()){
+                ConfigManager.setEffectsPackManaged(false)
+                ConfigManager.save()
+            }
+        } catch(err){
+            logger.warn('Unable to apply the resource pack preferences; the launch continues.', err)
+        }
+    }
+
+    /**
      * Resolve an array of all enabled mods. These mods will be constructed into
      * a mod list format and enabled at launch.
-     * 
+     *
      * @param {Object} modCfg The mod configuration object.
      * @param {Array.<Object>} mdls An array of modules to parse.
+     * @param {boolean} highDetail Whether the High-detail textures layer is
+     * enabled (issue #15). When false, the feature mods that read the
+     * EFFECTS pack are force-excluded whatever the per-mod toggles say.
      * @returns {{fMods: Array.<Object>, lMods: Array.<Object>}} An object which contains
      * a list of enabled forge mods and litemods.
      */
-    resolveModConfiguration(modCfg, mdls){
+    resolveModConfiguration(modCfg, mdls, highDetail = true){
         let fMods = []
         let lMods = []
 
@@ -230,10 +297,15 @@ class ProcessBuilder {
             const type = mdl.rawModule.type
             if(type === Type.ForgeMod || type === Type.LiteMod || type === Type.LiteLoader || type === Type.FabricMod){
                 const o = !mdl.getRequired().value
-                const e = ProcessBuilder.isModEnabled(modCfg[mdl.getVersionlessMavenIdentifier()], mdl.getRequired())
+                let e = ProcessBuilder.isModEnabled(modCfg[mdl.getVersionlessMavenIdentifier()], mdl.getRequired())
+                // Master switch off = the whole EFFECTS layer stays out of
+                // the mod list, even when a stored per-mod toggle says on.
+                if(!highDetail && o && HighDetail.HIGH_DETAIL_MOD_IDS.includes(mdl.getVersionlessMavenIdentifier())){
+                    e = false
+                }
                 if(!o || (o && e)){
                     if(mdl.subModules.length > 0){
-                        const v = this.resolveModConfiguration(modCfg[mdl.getVersionlessMavenIdentifier()].mods, mdl.subModules)
+                        const v = this.resolveModConfiguration(modCfg[mdl.getVersionlessMavenIdentifier()].mods, mdl.subModules, highDetail)
                         fMods = fMods.concat(v.fMods)
                         lMods = lMods.concat(v.lMods)
                         if(type === Type.LiteLoader){
