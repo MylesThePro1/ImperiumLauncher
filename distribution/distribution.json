@@ -595,38 +595,6 @@
                         "sha256": "03e0a5e60b6ea16d740f5b1f1f61e6226240a99eaf0993cac2d0d0427d00ea6d",
                         "url": "https://raw.githubusercontent.com/Romanica-MC/RomanicaLauncher/master/distribution/vendor/bbe-fabric-1.3.9+mc26.3-fabric.jar"
                     }
-                },
-                {
-                    "id": "net.romanica:texture-pack-base:2.0.9",
-                    "name": "Romanica Textures v2.0.9 (BASE)",
-                    "type": "File",
-                    "required": {
-                        "value": true,
-                        "def": true
-                    },
-                    "artifact": {
-                        "path": "resourcepacks/Romanica_TexturePack_v2.0.9_26.2_BASE.zip",
-                        "size": 48798961,
-                        "MD5": "e85cdaaffc21adeb8c0af3902a708653",
-                        "sha256": "c440ac5e4be6d5fd108ee4997cf67b9f056ece6b27e372648cdc9d11a971a0e5",
-                        "url": "https://github.com/Romanica-MC/romanica-resourcepack/releases/download/v2.0.9/Romanica_TexturePack_v2.0.9_26.2_BASE.zip"
-                    }
-                },
-                {
-                    "id": "net.romanica:texture-pack-effects:2.0.1",
-                    "name": "Romanica Textures v2.0.1 (EFFECTS, high detail)",
-                    "type": "File",
-                    "required": {
-                        "value": false,
-                        "def": false
-                    },
-                    "artifact": {
-                        "path": "resourcepacks/MINARECRAFTORVM_v2.0.1_26.2_EFFECTS.zip",
-                        "size": 53387348,
-                        "MD5": "af35aa99970c19371afab0b339d31bda",
-                        "sha256": "565ffa7917adc5a19c057761bc19d85c1a9275126c6968eedaf35016893533c4",
-                        "url": "https://github.com/Romanica-MC/romanica-resourcepack/releases/download/textures/MINARECRAFTORVM_v2.0.1_26.2_EFFECTS.zip"
-                    }
                 }
             ]
         }
