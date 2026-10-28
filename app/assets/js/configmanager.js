@@ -104,7 +104,16 @@ const DEFAULT_CONFIG = {
             // written by the launcher, so toggle-off removes only our own
             // write, never a pack the player enabled in-game.
             highDetailTextures: false,
-            effectsPackManaged: false
+            effectsPackManaged: false,
+            // Whether the launcher manages the instance's options.txt
+            // resourcePacks entries at all. Ships disabled: the smoke run
+            // of 2026-10-28 (40663424467) proved the packs repo's current
+            // metadata is rejected by 26.3's folder-repository path
+            // ("Removed resource pack ... no longer compatible"), and the
+            // rejected-pack churn is implicated in a client crash at the
+            // title screen. Flipped on once the packs repo publishes
+            // metadata the game accepts (issue #15, packs-repo item 1).
+            packOptionWritesEnabled: false
         },
         launcher: {
             allowPrerelease: false,
@@ -1068,6 +1077,26 @@ exports.getEffectsPackManaged = function(){
  */
 exports.setEffectsPackManaged = function(managed){
     config.settings.game.effectsPackManaged = managed === true
+}
+
+/**
+ * Check whether the launcher may write resourcePacks entries into the
+ * instance's options.txt at launch (BASE first-install + EFFECTS layer).
+ * Disabled until the packs repo publishes metadata the game accepts.
+ *
+ * @returns {boolean} Whether pack option writes are enabled.
+ */
+exports.getPackOptionWritesEnabled = function(){
+    return config.settings.game.packOptionWritesEnabled === true
+}
+
+/**
+ * Enable or disable the launcher's options.txt pack entry management.
+ *
+ * @param {boolean} enabled Whether pack option writes are enabled.
+ */
+exports.setPackOptionWritesEnabled = function(enabled){
+    config.settings.game.packOptionWritesEnabled = enabled === true
 }
 
 // Launcher Settings

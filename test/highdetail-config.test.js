@@ -60,6 +60,20 @@ test('setHighDetailTextures coerces to a real boolean', () => {
     assert.strictEqual(ConfigManager.getHighDetailTextures(), true)
 })
 
+test('pack option writes are gated off until the packs repo metadata is accepted', () => {
+    if(fs.existsSync(configPath)){
+        fs.removeSync(configPath)
+    }
+    ConfigManager.load()
+    assert.strictEqual(ConfigManager.getPackOptionWritesEnabled(), false,
+        'the launcher must not write resourcePacks entries while the game rejects the pack metadata (smoke 40663424467)')
+    ConfigManager.setPackOptionWritesEnabled(true)
+    ConfigManager.save()
+    ConfigManager.load()
+    assert.strictEqual(ConfigManager.getPackOptionWritesEnabled(), true, 'the gate must round-trip')
+    ConfigManager.setPackOptionWritesEnabled(false)
+})
+
 test('reconcileModConfigs flips exactly the feature mods that are configured', () => {
     const calls = []
     const fakeConfig = {

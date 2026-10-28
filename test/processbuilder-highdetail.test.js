@@ -6,7 +6,7 @@ const path   = require('path')
 
 const { stubModule } = require('./helpers/stubs')
 
-let highDetailState = { highDetail: false, effectsManaged: false, saves: 0 }
+let highDetailState = { highDetail: false, effectsManaged: false, packWrites: false, saves: 0 }
 
 stubModule(path.resolve(__dirname, '..', 'app', 'assets', 'js', 'configmanager.js'), {
     getMaxRAM: () => '4G',
@@ -16,6 +16,7 @@ stubModule(path.resolve(__dirname, '..', 'app', 'assets', 'js', 'configmanager.j
     getHighDetailTextures: () => highDetailState.highDetail,
     getEffectsPackManaged: () => highDetailState.effectsManaged,
     setEffectsPackManaged: (v) => { highDetailState.effectsManaged = v === true; highDetailState.saves++ },
+    getPackOptionWritesEnabled: () => highDetailState.packWrites,
     save: () => { highDetailState.saves++ }
 })
 
@@ -135,7 +136,10 @@ test('the pack preference wiring runs at launch: options.txt entries + managed f
     const gameDir = await fs.mkdtemp(path.join(os.tmpdir(), 'romanica-pb-packs-'))
     t.after(() => fs.remove(gameDir))
 
-    highDetailState = { highDetail: true, effectsManaged: false, saves: 0 }
+    // Ships disabled (smoke run 40663424467: the packs repo's metadata is
+    // rejected by 26.3): with the gate off, the launch must not write
+    // options.txt at all.
+    highDetailState = { highDetail: true, effectsManaged: false, packWrites: false, saves: 0 }
     const fakeThis = {
         gameDir,
         server: { rawServer: { id: 'Romanica' }, modules: [
@@ -143,6 +147,12 @@ test('the pack preference wiring runs at launch: options.txt entries + managed f
             module_('net.romanica:texture-pack-effects:2.0.1', 'File', { value: false, def: false }, `resourcepacks/${EFFECTS_FILE}`)
         ] }
     }
+    ProcessBuilder.prototype.applyResourcePackPreferences.call(fakeThis)
+    assert.strictEqual(await fs.pathExists(path.join(gameDir, 'options.txt')), false,
+        'with the gate off (default), the launch must not create or touch options.txt')
+
+    // Gate on: the full first-install behavior.
+    highDetailState.packWrites = true
     ProcessBuilder.prototype.applyResourcePackPreferences.call(fakeThis)
 
     const text = fs.readFileSync(path.join(gameDir, 'options.txt'), 'UTF-8')

@@ -248,6 +248,14 @@ class ProcessBuilder {
      * take the launch down with it.
      */
     applyResourcePackPreferences(){
+        // Disabled until the packs repo publishes metadata the game
+        // accepts: the 2026-10-28 smoke run proved 26.3 rejects the
+        // current BASE pack from the folder-repository path, and the
+        // rejected-pack churn is implicated in a client crash at the
+        // title screen. The write path itself stays tested and ready.
+        if(!ConfigManager.getPackOptionWritesEnabled()){
+            return
+        }
         try {
             const baseModule = this.server.modules.find(mdl => String(mdl.rawModule.id).startsWith(HighDetail.BASE_PACK_MODULE_PREFIX))
             if(baseModule == null){
