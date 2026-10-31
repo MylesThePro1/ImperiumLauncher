@@ -1,0 +1,17 @@
+[09:16:10] [main/INFO]: Loading Minecraft 26.3 with Fabric Loader 0.20.1
+[09:16:10] [main/INFO]: Mappings not present!
+[09:16:10] [main/WARN]: Mod resolution failed
+[09:16:10] [main/INFO]: Immediate reason: [HARD_DEP_NO_CANDIDATE entity_model_features 3.3.12 {depends entity_texture_features @ [>=7.2]}, ROOT_FORCELOAD_SINGLE entity_model_features 3.3.12]
+[09:16:10] [main/INFO]: Reason: [HARD_DEP entity_model_features 3.3.12 {depends entity_texture_features @ [>=7.2]}]
+[09:16:10] [main/INFO]: Fix: add [add:entity_texture_features 7.2 ([[7.2,∞)])], remove [], replace []
+[09:16:10] [main/ERROR]: Incompatible mods found!
+net.fabricmc.loader.impl.FormattedException: Some of your mods are incompatible with the game or each other!
+A potential solution has been determined, this may resolve your problem:
+	 - Install entity_texture_features, version 7.2 or later.
+More details:
+	 - Mod 'Entity Model Features' (entity_model_features) 3.3.12 requires version 7.2 or later of entity_texture_features, which is missing!
+	at net.fabricmc.loader.impl.FormattedException.ofLocalized(FormattedException.java:51)
+	at net.fabricmc.loader.impl.FabricLoaderImpl.load(FabricLoaderImpl.java:207)
+	at net.fabricmc.loader.impl.launch.knot.Knot.init(Knot.java:142)
+	at net.fabricmc.loader.impl.launch.knot.Knot.launch(Knot.java:66)
+	at net.fabricmc.loader.impl.launch.knot.KnotClient.main(KnotClient.java:23)
